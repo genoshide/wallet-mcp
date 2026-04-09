@@ -190,4 +190,6 @@ wallet-mcp/
 
 ## License
 
-MIT
+MIT License — see [LICENSE](LICENSE) for details.
+
+Disclaimer: This tool is for educational and research purposes only. It does not constitute financial advice. Always do your own research before making investment decisions.
