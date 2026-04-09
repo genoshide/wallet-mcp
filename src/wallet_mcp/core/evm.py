@@ -75,5 +75,5 @@ def send_eth(
         "chainId": w3.eth.chain_id,
     }
     signed = acct.sign_transaction(tx)
-    tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
+    tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
     return tx_hash.hex()
