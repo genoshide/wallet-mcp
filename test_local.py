@@ -85,7 +85,7 @@ except Exception as e:
 try:
     from wallet_mcp.server import mcp
     tools = list(mcp._tool_manager._tools.keys())
-    assert len(tools) == 9, f"Expected 9 tools, got {len(tools)}"
+    assert len(tools) == 10, f"Expected 10 tools, got {len(tools)}"
     ok(f"FastMCP server  ({len(tools)} tools registered)")
 except Exception as e:
     fail("FastMCP server", e)
