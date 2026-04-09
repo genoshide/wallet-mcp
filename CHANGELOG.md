@@ -5,6 +5,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.1.0] — 2026-04-10
+
+### Added
+- **`sweep_wallets`** — collect all SOL/ETH from a wallet group back to one destination address; supports retry, random delay, and per-wallet skip when balance is too low to cover fees
+- **`scan_token_balances`** — scan SPL token balances across a Solana wallet group (all tokens or filter by mint), or ERC-20 token balances across an EVM group (contract address required); returns `wallets_with_balance` summary
+
+### Fixed
+- `signed.rawTransaction` → `signed.raw_transaction` in `evm.py` (`send_eth`) — web3.py v6 renamed the attribute; every EVM send would crash without this fix
+- `wallet_exists()` in `generator.py` was reading the entire CSV on every iteration (O(n²) for large batches) — now loads existing addresses once into a `set` before the loop
+
+---
+
 ## [1.0.0] — 2026-04-09
 
 ### Added

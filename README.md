@@ -26,10 +26,12 @@ A production-ready MCP (Model Context Protocol) server that gives Claude, OpenCl
 |---|---|
 | `generate_wallets` | Generate N wallets (Solana or EVM), save to local CSV |
 | `send_native_multi` | Send SOL / ETH from one wallet to a labeled group |
+| `sweep_wallets` | Collect all SOL / ETH from a group back to one destination |
 | `list_wallets` | List wallets with chain / label / tag filters |
 | `get_balance_batch` | Fetch native balances for a wallet group |
+| `scan_token_balances` | Scan SPL / ERC-20 token balances across a wallet group |
 | `close_token_accounts` | Close empty SPL token accounts, reclaim rent SOL |
-| `scan_token_accounts` | Scan SPL token accounts (read-only) |
+| `scan_token_accounts` | Scan SPL token accounts for one wallet (read-only) |
 | `tag_wallets` | Add a tag to all wallets in a label group |
 | `group_summary` | Show wallet groups and counts per chain |
 | `delete_group` | Permanently delete all wallets in a group |
@@ -121,6 +123,18 @@ Or if installed locally:
 
 ```
 → group_summary()
+```
+
+> **"Sweep all leftover SOL from airdrop1 back to my main wallet"**
+
+```
+→ sweep_wallets(to_address="YourMainWallet...", chain="solana", label="airdrop1")
+```
+
+> **"Check USDC balances across all my EVM wallets"**
+
+```
+→ scan_token_balances(chain="evm", label="eth_test", token="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")
 ```
 
 See [EXAMPLES.md](EXAMPLES.md) for more.

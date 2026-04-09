@@ -138,6 +138,104 @@ list_wallets(label="old_campaign")
 
 ---
 
+## Sweep — Collect Funds Back
+
+### After a campaign: sweep all remaining SOL to your main wallet
+```
+sweep_wallets(
+  to_address="YourMainWalletPubkey...",
+  chain="solana",
+  label="drop_apr",
+  leave_lamports=5000
+)
+```
+Output:
+```json
+{
+  "status": "success",
+  "chain": "solana",
+  "to_address": "YourMainWalletPubkey...",
+  "total": 100,
+  "swept": 97,
+  "skipped": 3,
+  "failed": 0,
+  "total_swept": 4.823719,
+  "results": [...]
+}
+```
+
+### Sweep EVM wallets tagged "used" back to treasury
+```
+sweep_wallets(
+  to_address="0xYourTreasury...",
+  chain="evm",
+  tag="used"
+)
+```
+
+---
+
+## Token Balance Scan
+
+### Scan all SPL tokens across a Solana wallet group
+```
+scan_token_balances(chain="solana", label="drop_apr")
+```
+Output:
+```json
+{
+  "status": "success",
+  "chain": "solana",
+  "token": null,
+  "total_wallets": 100,
+  "wallets_with_balance": 42,
+  "results": [
+    {
+      "address": "So1ana...",
+      "tokens": [
+        {"mint": "EPjFW...", "balance": 10.5, "decimals": 6},
+        {"mint": "Es9vM...", "balance": 0.0, "decimals": 6}
+      ],
+      "status": "ok"
+    }
+  ]
+}
+```
+
+### Check USDC balance for a specific EVM group
+```
+scan_token_balances(
+  chain="evm",
+  label="eth_test",
+  token="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+)
+```
+Output:
+```json
+{
+  "status": "success",
+  "chain": "evm",
+  "token": "0xA0b8...",
+  "total_wallets": 20,
+  "wallets_with_balance": 5,
+  "results": [
+    {"address": "0xABCD...", "balance": 250.0, "symbol": "USDC", "status": "ok"},
+    {"address": "0x1234...", "balance": 0.0,   "symbol": "USDC", "status": "ok"}
+  ]
+}
+```
+
+### Filter by tag + specific Solana mint
+```
+scan_token_balances(
+  chain="solana",
+  tag="funded",
+  token="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+)
+```
+
+---
+
 ## Natural Language (Claude Desktop)
 
 These prompts work directly in Claude Desktop after installing wallet-mcp:
@@ -150,3 +248,5 @@ These prompts work directly in Claude Desktop after installing wallet-mcp:
 - _"Scan token accounts on wallet So1ana... and close the empty ones to reclaim SOL"_
 - _"Create 30 EVM wallets for my Ethereum test group"_
 - _"List all Solana wallets with the tag funded"_
+- _"Sweep all remaining SOL from my airdrop1 wallets back to my main wallet"_
+- _"Check which wallets in eth_test hold USDC"_

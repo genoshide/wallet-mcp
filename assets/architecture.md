@@ -16,9 +16,10 @@
 ┌─────────────────────────────────────────────────────────────────────┐
 │               wallet-mcp  FastMCP Server  (server.py)               │
 │                                                                     │
-│  generate_wallets    send_native_multi   list_wallets               │
-│  close_token_accts   get_balance_batch   scan_token_accts           │
-│  tag_wallets         group_summary       delete_group               │
+│  generate_wallets    send_native_multi   sweep_wallets               │
+│  list_wallets        get_balance_batch   scan_token_balances        │
+│  close_token_accts   scan_token_accts    tag_wallets                │
+│  group_summary       delete_group                                   │
 └──────────┬────────────────┬────────────────┬───────────────┬────────┘
            │                │                │               │
            ▼                ▼                ▼               ▼
@@ -67,7 +68,7 @@ Any MCP-compatible client that communicates with the server over the MCP protoco
 
 ### FastMCP Server (`server.py`)
 
-The MCP server layer. Exposes 9 tools via `@mcp.tool()` decorator. All tool inputs and outputs are typed dicts. Handles errors internally — always returns `{status: "success" | "error", ...}`.
+The MCP server layer. Exposes 11 tools via `@mcp.tool()` decorator. All tool inputs and outputs are typed dicts. Handles errors internally — always returns `{status: "success" | "error", ...}`.
 
 **Entry point:** `wallet_mcp.server:main`  
 **Transport:** stdio (default) or `streamable-http` (pass arg)  
@@ -79,8 +80,10 @@ The MCP server layer. Exposes 9 tools via `@mcp.tool()` decorator. All tool inpu
 |---|---|---|
 | `generate_wallets` | generator.py | EVM + Solana |
 | `send_native_multi` | distributor.py | EVM + Solana |
+| `sweep_wallets` | distributor.py | EVM + Solana |
 | `list_wallets` | manager.py | Both |
 | `get_balance_batch` | manager.py | Both |
+| `scan_token_balances` | manager.py | EVM + Solana |
 | `close_token_accounts` | solana.py | Solana only |
 | `scan_token_accounts` | solana.py | Solana only |
 | `tag_wallets` | manager.py | Both |
@@ -98,27 +101,29 @@ The MCP server layer. Exposes 9 tools via `@mcp.tool()` decorator. All tool inpu
 - Calls `storage.save_wallets_batch()` in one write
 
 #### `distributor.py`
-- Iterates recipients from CSV
-- Calls `send_eth` or `send_sol` per wallet
-- Wraps each send in `retry()` (3 attempts, 5s delay)
-- Optional `random_amount()` ±10%
-- Optional `random_delay()` between sends
+- `send_native_multi` — iterates recipients, calls `send_eth`/`send_sol` per wallet, retry + random delay + random amount
+- `sweep_native_multi` — reads balance per wallet, sends `balance - fee_reserve` to destination; skips wallets with insufficient balance
 
 #### `manager.py`
 - `list_wallets` — filter + mask private keys by default
 - `get_balance_batch` — groups by chain, single RPC client per chain
+- `scan_token_balances` — SPL all-tokens or filter-by-mint (Solana); ERC-20 contract required (EVM)
 - `group_summary` — aggregates from CSV with `defaultdict`
 - `tag_label`, `delete_group` — delegates to storage
 
 #### `evm.py`
 - Uses `eth_account` for keypair generation
 - Uses `web3.py` for balance + transfer
+- `get_erc20_balances_batch` — reads `balanceOf`/`decimals`/`symbol` via minimal ERC-20 ABI
+- `sweep_eth_wallet` — sends `balance - 21000*gas_price` to destination
 - RPC URL configurable per call or via `EVM_RPC_URL` env
 
 #### `solana.py`
 - Uses `solders.keypair.Keypair` for keypair generation
 - Private key stored as base58-encoded 64-byte secret (Phantom-compatible)
 - Uses `solana.rpc.api.Client` for RPC calls
+- `get_spl_balances_batch` — calls `get_token_accounts` per wallet, optional mint filter
+- `sweep_sol_wallet` — sends `balance - leave_lamports` to destination
 - `close_token_accounts`: builds raw `CloseAccount` instruction (opcode 9) without SPL dependency
 - Token account parsing handles both `dict` and object forms across solana-py versions
 
