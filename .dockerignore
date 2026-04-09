@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+.uv/
+
+# Secrets & sensitive data — NEVER include in image
+.env
+wallets.csv
+data/
+*.csv
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Tests
+test_*.py
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Docs (not needed in image)
+assets/
+*.md
+!README.md
+
+# Docker files (not needed inside image)
+Dockerfile
+docker-compose.yml
+.dockerignore

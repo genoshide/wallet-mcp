@@ -1,0 +1,79 @@
+"""
+EVM wallet operations: generation, balance, native token transfer.
+Supports Ethereum, BSC, Polygon, Arbitrum, and any EVM-compatible chain.
+"""
+import os
+from typing import Optional
+
+DEFAULT_RPC = os.getenv("EVM_RPC_URL", "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161")
+
+
+def generate_evm_wallet() -> dict:
+    """Generate a new EVM wallet. Returns {address, private_key}."""
+    from eth_account import Account
+    acct = Account.create()
+    return {"address": acct.address, "private_key": acct.key.hex()}
+
+
+def get_evm_balance(address: str, rpc_url: str = DEFAULT_RPC) -> float:
+    """Return native token balance in ETH (or chain native unit)."""
+    from web3 import Web3
+    rpc_url = rpc_url or DEFAULT_RPC
+    w3 = Web3(Web3.HTTPProvider(rpc_url))
+    if not w3.is_connected():
+        raise ConnectionError(f"Cannot connect to RPC: {rpc_url}")
+    bal = w3.eth.get_balance(Web3.to_checksum_address(address))
+    return float(w3.from_wei(bal, "ether"))
+
+
+def get_evm_balances_batch(addresses: list[str], rpc_url: str = DEFAULT_RPC) -> list[dict]:
+    """Fetch balances for multiple EVM addresses."""
+    from web3 import Web3
+    rpc_url = rpc_url or DEFAULT_RPC
+    w3 = Web3(Web3.HTTPProvider(rpc_url))
+    if not w3.is_connected():
+        raise ConnectionError(f"Cannot connect to RPC: {rpc_url}")
+    results = []
+    for addr in addresses:
+        try:
+            bal = w3.eth.get_balance(Web3.to_checksum_address(addr))
+            results.append({"address": addr, "balance": float(w3.from_wei(bal, "ether")), "status": "ok"})
+        except Exception as e:
+            results.append({"address": addr, "balance": None, "status": "error", "error": str(e)})
+    return results
+
+
+def send_eth(
+    from_private_key: str,
+    to_address: str,
+    amount_eth: float,
+    rpc_url: str = DEFAULT_RPC,
+    gas_price_gwei: Optional[float] = None,
+) -> str:
+    """Send native token. Returns tx hash string."""
+    from web3 import Web3
+    from eth_account import Account
+
+    rpc_url = rpc_url or DEFAULT_RPC
+    w3 = Web3(Web3.HTTPProvider(rpc_url))
+    if not w3.is_connected():
+        raise ConnectionError(f"Cannot connect to RPC: {rpc_url}")
+
+    key = from_private_key if from_private_key.startswith("0x") else f"0x{from_private_key}"
+    acct = Account.from_key(key)
+    to_cs = Web3.to_checksum_address(to_address)
+
+    nonce = w3.eth.get_transaction_count(acct.address)
+    gp = w3.to_wei(gas_price_gwei, "gwei") if gas_price_gwei else w3.eth.gas_price
+
+    tx = {
+        "to": to_cs,
+        "value": w3.to_wei(amount_eth, "ether"),
+        "gas": 21000,
+        "gasPrice": gp,
+        "nonce": nonce,
+        "chainId": w3.eth.chain_id,
+    }
+    signed = acct.sign_transaction(tx)
+    tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
+    return tx_hash.hex()

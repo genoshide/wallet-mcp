@@ -1,0 +1,321 @@
+"""
+wallet-mcp — Multi Wallet Generator + Manager
+FastMCP server exposing wallet tools to Claude Desktop, Claude Code,
+OpenClaw, Hermes, and any MCP-compatible AI agent.
+"""
+import sys
+
+# Load .env file before anything reads os.getenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # python-dotenv not installed — env vars must be set manually
+
+from mcp.server.fastmcp import FastMCP
+
+mcp = FastMCP(
+    name="Multi Wallet Generator + Manager",
+    instructions=(
+        "Manage EVM and Solana wallets. "
+        "You can generate wallets, send native tokens to groups, "
+        "check balances, close empty Solana token accounts, "
+        "and organise wallets by label/tag."
+    ),
+)
+
+
+# ── 1. generate_wallets ────────────────────────────────────────────────────
+
+@mcp.tool()
+def generate_wallets(chain: str, count: int, label: str, tags: str = "") -> dict:
+    """
+    Generate N new wallets and save them to local storage.
+
+    Args:
+        chain:  'solana' or 'evm'
+        count:  number of wallets to create (1 – 10,000)
+        label:  group label, e.g. 'airdrop1' or 'campaign2'
+        tags:   optional pipe-separated tags, e.g. 'vip|batch1'
+
+    Returns:
+        {status, chain, label, generated, wallets: [{address}]}
+    """
+    try:
+        from wallet_mcp.core.generator import generate_wallets as _gen
+        wallets = _gen(chain=chain, count=count, label=label, tags=tags)
+        return {
+            "status":    "success",
+            "chain":     chain,
+            "label":     label,
+            "generated": len(wallets),
+            "wallets":   [{"address": w["address"]} for w in wallets],
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+# ── 2. send_native_multi ───────────────────────────────────────────────────
+
+@mcp.tool()
+def send_native_multi(
+    from_key:  str,
+    label:     str,
+    amount:    float,
+    chain:     str,
+    rpc:       str = "",
+    tag:       str = "",
+    randomize: bool = False,
+    delay_min: int = 1,
+    delay_max: int = 30,
+    retries:   int = 3,
+) -> dict:
+    """
+    Send native tokens (SOL / ETH) from one source wallet to all wallets in a group.
+
+    Args:
+        from_key:  sender private key (base58 for Solana, hex for EVM)
+        label:     target wallet group label
+        amount:    base amount to send per wallet
+        chain:     'solana' or 'evm'
+        rpc:       custom RPC URL (optional)
+        tag:       filter recipients by tag (optional)
+        randomize: randomize each amount ±10% (default False)
+        delay_min: minimum seconds between sends (default 1)
+        delay_max: maximum seconds between sends (default 30)
+        retries:   retry attempts per failed send (default 3)
+
+    Returns:
+        {status, chain, total, sent, failed, results}
+    """
+    try:
+        from wallet_mcp.core.storage import filter_wallets
+        from wallet_mcp.core.distributor import send_native_multi as _send
+
+        recipients = filter_wallets(chain=chain, label=label, tag=tag or None)
+        if not recipients:
+            return {"status": "error", "message": f"No wallets found for chain={chain} label={label}"}
+
+        return _send(
+            from_private_key=from_key,
+            recipients=recipients,
+            amount=amount,
+            chain=chain,
+            rpc_url=rpc or None,
+            randomize=randomize,
+            delay_min=delay_min,
+            delay_max=delay_max,
+            retry_attempts=retries,
+        )
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+# ── 3. list_wallets ────────────────────────────────────────────────────────
+
+@mcp.tool()
+def list_wallets(
+    chain:     str = "",
+    label:     str = "",
+    tag:       str = "",
+    show_keys: bool = False,
+) -> dict:
+    """
+    List wallets from local storage with optional filters.
+
+    Args:
+        chain:     filter by chain ('solana' | 'evm') — optional
+        label:     filter by group label — optional
+        tag:       filter by tag — optional
+        show_keys: include private keys in output (default False — keep False unless needed)
+
+    Returns:
+        {status, count, wallets}
+    """
+    try:
+        from wallet_mcp.core.manager import list_wallets as _list
+        wallets = _list(
+            chain=chain or None,
+            label=label or None,
+            tag=tag or None,
+            show_keys=show_keys,
+        )
+        return {"status": "success", "count": len(wallets), "wallets": wallets}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+# ── 4. close_token_accounts ────────────────────────────────────────────────
+
+@mcp.tool()
+def close_token_accounts(
+    private_key:     str,
+    rpc:             str = "",
+    close_non_empty: bool = False,
+) -> dict:
+    """
+    Close empty SPL token accounts on Solana to reclaim rent SOL.
+
+    Args:
+        private_key:     wallet private key (base58)
+        rpc:             custom Solana RPC URL (optional)
+        close_non_empty: also close accounts with token balance — use with caution
+
+    Returns:
+        {status, closed, failed, skipped, total_found, reclaimed_sol_estimate}
+    """
+    try:
+        from wallet_mcp.core.solana import close_token_accounts as _close
+        result = _close(
+            private_key_b58=private_key,
+            rpc_url=rpc or None,
+            close_non_empty=close_non_empty,
+        )
+        return {"status": "success", **result}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+# ── 5. get_balance_batch ───────────────────────────────────────────────────
+
+@mcp.tool()
+def get_balance_batch(
+    chain: str = "",
+    label: str = "",
+    tag:   str = "",
+    rpc:   str = "",
+) -> dict:
+    """
+    Fetch native token balances for all wallets matching a filter.
+
+    Args:
+        chain: filter by chain ('solana' | 'evm') — optional
+        label: filter by group label — optional
+        tag:   filter by tag — optional
+        rpc:   custom RPC URL — optional
+
+    Returns:
+        {status, total, sum, results: [{address, chain, label, balance, status}]}
+    """
+    try:
+        from wallet_mcp.core.manager import get_balance_batch as _bal
+        result = _bal(
+            chain=chain or None,
+            label=label or None,
+            tag=tag or None,
+            rpc_url=rpc or None,
+        )
+        return {"status": "success", **result}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+# ── 6. tag_wallets ─────────────────────────────────────────────────────────
+
+@mcp.tool()
+def tag_wallets(label: str, tag: str) -> dict:
+    """
+    Add a tag to all wallets with the given label.
+
+    Args:
+        label: wallet group label
+        tag:   tag string to add (e.g. 'funded', 'used', 'vip')
+
+    Returns:
+        {status, label, tag, updated}
+    """
+    try:
+        from wallet_mcp.core.manager import tag_label
+        result = tag_label(label=label, tag=tag)
+        return {"status": "success", **result}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+# ── 7. group_summary ───────────────────────────────────────────────────────
+
+@mcp.tool()
+def group_summary() -> dict:
+    """
+    Show a summary of all wallet groups with counts per chain.
+
+    Returns:
+        {status, groups: [{label, evm, solana, total}]}
+    """
+    try:
+        from wallet_mcp.core.manager import group_summary as _summary
+        return {"status": "success", "groups": _summary()}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+# ── 8. delete_group ────────────────────────────────────────────────────────
+
+@mcp.tool()
+def delete_group(label: str) -> dict:
+    """
+    Delete all wallets in a group by label. This is permanent.
+
+    Args:
+        label: wallet group label to delete
+
+    Returns:
+        {status, label, deleted}
+    """
+    try:
+        from wallet_mcp.core.manager import delete_group as _del
+        result = _del(label=label)
+        return {"status": "success", **result}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+# ── 9. scan_token_accounts ─────────────────────────────────────────────────
+
+@mcp.tool()
+def scan_token_accounts(address: str, rpc: str = "") -> dict:
+    """
+    Scan all SPL token accounts for a Solana wallet (read-only, no changes).
+
+    Args:
+        address: Solana wallet public key
+        rpc:     custom RPC URL (optional)
+
+    Returns:
+        {status, total, empty, non_empty, accounts}
+    """
+    try:
+        from wallet_mcp.core.solana import get_token_accounts, DEFAULT_RPC
+        accounts = get_token_accounts(address, rpc or DEFAULT_RPC)
+        empty    = [a for a in accounts if a["amount"] == 0]
+        return {
+            "status":    "success",
+            "total":     len(accounts),
+            "empty":     len(empty),
+            "non_empty": len(accounts) - len(empty),
+            "accounts":  accounts,
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+# ── Entry point ────────────────────────────────────────────────────────────
+
+def main() -> None:
+    import argparse as _ap
+    p = _ap.ArgumentParser(add_help=False)
+    p.add_argument("transport", nargs="?", default="stdio",
+                   choices=["stdio", "streamable-http"])
+    p.add_argument("--host", default="0.0.0.0")
+    p.add_argument("--port", type=int, default=8000)
+    opts, _ = p.parse_known_args()
+
+    if opts.transport == "streamable-http":
+        mcp.run(transport="streamable-http", host=opts.host, port=opts.port)
+    else:
+        mcp.run()
+
+
+# Allow `python -m wallet_mcp` and `python -m wallet_mcp.server`
+if __name__ == "__main__":
+    main()
