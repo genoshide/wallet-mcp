@@ -43,6 +43,48 @@ def get_evm_balances_batch(addresses: list[str], rpc_url: str = DEFAULT_RPC) -> 
     return results
 
 
+def sweep_eth_wallet(
+    from_private_key: str,
+    to_address: str,
+    rpc_url: str = DEFAULT_RPC,
+) -> dict:
+    """
+    Send all ETH from `from_private_key` wallet to `to_address`, deducting gas cost.
+    Returns {address, sent_eth, tx_hash, status} or {address, status, reason}.
+    """
+    from web3 import Web3
+    from eth_account import Account
+
+    rpc_url = rpc_url or DEFAULT_RPC
+    w3      = Web3(Web3.HTTPProvider(rpc_url))
+    if not w3.is_connected():
+        raise ConnectionError(f"Cannot connect to RPC: {rpc_url}")
+
+    key     = from_private_key if from_private_key.startswith("0x") else f"0x{from_private_key}"
+    acct    = Account.from_key(key)
+    to_cs   = Web3.to_checksum_address(to_address)
+    balance = w3.eth.get_balance(acct.address)
+    gp      = w3.eth.gas_price
+    gas_cost = 21_000 * gp
+    sendable = balance - gas_cost
+
+    if sendable <= 0:
+        return {"address": acct.address, "status": "skipped", "reason": "insufficient balance"}
+
+    tx = {
+        "to":       to_cs,
+        "value":    sendable,
+        "gas":      21_000,
+        "gasPrice": gp,
+        "nonce":    w3.eth.get_transaction_count(acct.address),
+        "chainId":  w3.eth.chain_id,
+    }
+    signed   = acct.sign_transaction(tx)
+    tx_hash  = w3.eth.send_raw_transaction(signed.raw_transaction).hex()
+    sent_eth = float(w3.from_wei(sendable, "ether"))
+    return {"address": acct.address, "sent_eth": sent_eth, "tx_hash": tx_hash, "status": "swept"}
+
+
 def send_eth(
     from_private_key: str,
     to_address: str,

@@ -299,6 +299,61 @@ def scan_token_accounts(address: str, rpc: str = "") -> dict:
         return {"status": "error", "message": str(e)}
 
 
+# ── 10. sweep_wallets ──────────────────────────────────────────────────────
+
+@mcp.tool()
+def sweep_wallets(
+    to_address: str,
+    chain:      str,
+    label:      str = "",
+    tag:        str = "",
+    rpc:        str = "",
+    leave_lamports: int = 5000,
+    delay_min:  int = 1,
+    delay_max:  int = 10,
+    retries:    int = 3,
+) -> dict:
+    """
+    Sweep all native tokens (SOL / ETH) from a wallet group back to one destination.
+
+    Useful for consolidating funds after a campaign or reclaiming leftover balances.
+
+    Args:
+        to_address:     destination address that receives all funds
+        chain:          'solana' or 'evm'
+        label:          source wallet group label — optional (leave blank to sweep by tag only)
+        tag:            filter source wallets by tag — optional
+        rpc:            custom RPC URL — optional
+        leave_lamports: lamports to keep in each Solana wallet to cover the tx fee (default 5000)
+        delay_min:      minimum seconds between sends (default 1)
+        delay_max:      maximum seconds between sends (default 10)
+        retries:        retry attempts per failed send (default 3)
+
+    Returns:
+        {status, chain, to_address, total, swept, skipped, failed, total_swept, results}
+    """
+    try:
+        from wallet_mcp.core.storage import filter_wallets
+        from wallet_mcp.core.distributor import sweep_native_multi
+
+        wallets = filter_wallets(chain=chain, label=label or None, tag=tag or None)
+        if not wallets:
+            return {"status": "error", "message": f"No wallets found for chain={chain} label={label}"}
+
+        return sweep_native_multi(
+            wallets=wallets,
+            to_address=to_address,
+            chain=chain,
+            rpc_url=rpc or None,
+            leave_lamports=leave_lamports,
+            delay_min=delay_min,
+            delay_max=delay_max,
+            retry_attempts=retries,
+        )
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
 # ── Entry point ────────────────────────────────────────────────────────────
 
 def main() -> None:

@@ -133,6 +133,36 @@ def get_token_accounts(owner_address: str, rpc_url: str = DEFAULT_RPC) -> list[d
     return accounts
 
 
+def sweep_sol_wallet(
+    private_key_b58: str,
+    to_address: str,
+    rpc_url: str = DEFAULT_RPC,
+    leave_lamports: int = 5000,
+) -> dict:
+    """
+    Send all SOL from `private_key_b58` wallet to `to_address`,
+    keeping `leave_lamports` to cover the transaction fee.
+    Returns {address, sent_sol, tx_hash, status} or {address, status, reason}.
+    """
+    from solana.rpc.api import Client
+    from solders.pubkey import Pubkey
+
+    rpc_url = rpc_url or DEFAULT_RPC
+    client  = Client(rpc_url)
+    sender  = _keypair(private_key_b58)
+    address = str(sender.pubkey())
+
+    balance_lamps = client.get_balance(sender.pubkey()).value
+    sendable      = balance_lamps - leave_lamports
+
+    if sendable <= 0:
+        return {"address": address, "status": "skipped", "reason": "insufficient balance"}
+
+    tx_hash  = send_sol(private_key_b58, to_address, sendable / LAMPORTS_PER_SOL, rpc_url)
+    sent_sol = round(sendable / LAMPORTS_PER_SOL, 9)
+    return {"address": address, "sent_sol": sent_sol, "tx_hash": tx_hash, "status": "swept"}
+
+
 def close_token_accounts(
     private_key_b58: str,
     rpc_url: str = DEFAULT_RPC,
