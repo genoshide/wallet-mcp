@@ -394,6 +394,93 @@ def scan_token_balances(
         return {"status": "error", "message": str(e)}
 
 
+# ── 12. export_wallets ────────────────────────────────────────────────────
+
+@mcp.tool()
+def export_wallets(
+    path:         str  = "",
+    chain:        str  = "",
+    label:        str  = "",
+    tag:          str  = "",
+    format:       str  = "json",
+    include_keys: bool = False,
+) -> dict:
+    """
+    Export wallets to a JSON or CSV file for backup or offline use.
+
+    Args:
+        path:         destination file path — auto-generated under
+                      ~/.wallet-mcp/exports/ if omitted
+        chain:        filter by chain ('solana' | 'evm') — optional
+        label:        filter by group label — optional
+        tag:          filter by tag — optional
+        format:       'json' (default) or 'csv'
+        include_keys: include private keys in the export (default False — safer)
+
+    Returns:
+        {status, path, format, count, include_keys}
+    """
+    try:
+        from wallet_mcp.core.storage import filter_wallets
+        from wallet_mcp.core.exporter import export_wallets as _export
+
+        wallets = filter_wallets(
+            chain=chain or None,
+            label=label or None,
+            tag=tag or None,
+        )
+        if not wallets:
+            return {"status": "error", "message": "No wallets match the given filters."}
+
+        result = _export(
+            wallets=wallets,
+            fmt=format,
+            output_path=path or None,
+            include_keys=include_keys,
+        )
+        return {"status": "success", **result}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+# ── 13. import_wallets ────────────────────────────────────────────────────
+
+@mcp.tool()
+def import_wallets(
+    path:  str,
+    fmt:   str = "auto",
+    label: str = "",
+    tags:  str = "",
+) -> dict:
+    """
+    Import wallets from a JSON or CSV file into local storage.
+
+    Duplicate addresses (already in storage) are skipped automatically.
+    Rows missing required fields (address, private_key, chain) are counted as failed.
+
+    Args:
+        path:  path to the source file (.json or .csv)
+        fmt:   'json', 'csv', or 'auto' — detect from file extension (default)
+        label: override label for all imported wallets;
+               uses the file's own label field when blank
+        tags:  extra pipe-separated tags to append to each wallet (e.g. 'imported|batch2')
+
+    Returns:
+        {status, file, format, total_in_file, imported, skipped_duplicates, failed}
+    """
+    try:
+        from wallet_mcp.core.importer import import_wallets as _import
+        result = _import(
+            file_path=path,
+            fmt=fmt,
+            label=label or None,
+            tags=tags,
+        )
+        return {"status": "success", **result}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
 # ── Entry point ────────────────────────────────────────────────────────────
 
 def main() -> None:

@@ -85,7 +85,7 @@ except Exception as e:
 try:
     from wallet_mcp.server import mcp
     tools = list(mcp._tool_manager._tools.keys())
-    assert len(tools) == 11, f"Expected 11 tools, got {len(tools)}"
+    assert len(tools) == 13, f"Expected 13 tools, got {len(tools)}"
     ok(f"FastMCP server  ({len(tools)} tools registered)")
 except Exception as e:
     fail("FastMCP server", e)
@@ -403,6 +403,178 @@ try:
     ok("server.scan_token_balances success (0 wallets)  -> ok")
 except Exception as e:
     fail("server.scan_token_balances success path", e)
+
+# ════════════════════════════════════════════════════════════════════════════
+section("14. Export Wallets")
+# ════════════════════════════════════════════════════════════════════════════
+import json as _json
+
+try:
+    from wallet_mcp.core.exporter import export_wallets as _export
+    from wallet_mcp.core.storage import filter_wallets as _filter
+    from wallet_mcp.core.generator import generate_wallets as _gen_exp
+    _gen_exp("evm", 3, "exp_test")
+    wallets = _filter(label="exp_test")
+
+    # JSON export — no keys
+    out_json = os.path.join(_TMP, "export_test.json")
+    r = _export(wallets, fmt="json", output_path=out_json, include_keys=False)
+    data = _json.load(open(out_json, encoding="utf-8"))
+    assert r["count"] == 3
+    assert len(data) == 3
+    assert "private_key" not in data[0], "private_key must be absent when include_keys=False"
+    ok(f"export JSON no-keys  -> {r['count']} wallets, file created")
+except Exception as e:
+    fail("export JSON no-keys", e)
+
+try:
+    # JSON export — with keys
+    out_json_keys = os.path.join(_TMP, "export_keys.json")
+    r = _export(wallets, fmt="json", output_path=out_json_keys, include_keys=True)
+    data_k = _json.load(open(out_json_keys, encoding="utf-8"))
+    assert "private_key" in data_k[0], "private_key must be present when include_keys=True"
+    assert len(data_k[0]["private_key"]) >= 60
+    ok(f"export JSON with-keys  -> private_key present ({data_k[0]['private_key'][:8]}...)")
+except Exception as e:
+    fail("export JSON with-keys", e)
+
+try:
+    import csv as _csv
+    # CSV export — no keys
+    out_csv = os.path.join(_TMP, "export_test.csv")
+    r = _export(wallets, fmt="csv", output_path=out_csv, include_keys=False)
+    rows = list(_csv.DictReader(open(out_csv, encoding="utf-8")))
+    assert len(rows) == 3
+    assert "private_key" not in rows[0], "private_key must be absent in CSV when include_keys=False"
+    assert "address" in rows[0]
+    ok(f"export CSV no-keys  -> {len(rows)} rows, no private_key column")
+except Exception as e:
+    fail("export CSV no-keys", e)
+
+try:
+    # Invalid format guard
+    from wallet_mcp.core.exporter import export_wallets as _export2
+    try:
+        _export2(wallets, fmt="xlsx")
+        fail("invalid format should raise ValueError", "no error raised")
+    except ValueError as ve:
+        ok(f"export invalid format  -> ValueError: {str(ve)[:40]}")
+except Exception as e:
+    fail("export invalid format guard", e)
+
+try:
+    # server tool — success path
+    from wallet_mcp.server import export_wallets as srv_exp
+    out_srv = os.path.join(_TMP, "srv_export.json")
+    r = srv_exp(path=out_srv, label="exp_test", format="json")
+    assert r["status"] == "success"
+    assert r["count"] == 3
+    ok(f"server.export_wallets  -> count={r['count']} path={os.path.basename(r['path'])}")
+except Exception as e:
+    fail("server.export_wallets", e)
+
+try:
+    # server tool — no wallets found
+    r = srv_exp(label="no_such_label_xyz")
+    assert r["status"] == "error"
+    ok(f"server.export_wallets no wallets  -> error: {r['message'][:40]}")
+except Exception as e:
+    fail("server.export_wallets no wallets", e)
+
+# ════════════════════════════════════════════════════════════════════════════
+section("15. Import Wallets")
+# ════════════════════════════════════════════════════════════════════════════
+import json as _json_imp
+import csv as _csv_imp
+
+try:
+    from wallet_mcp.core.importer import import_wallets as _import
+    from wallet_mcp.core.storage import load_wallets as _load2
+
+    # Build a JSON file with fresh addresses NOT in storage
+    _fresh_json = [
+        {"address": f"0xIMPORT{i:034d}", "private_key": "ab" * 32,
+         "chain": "evm", "label": "json_src", "tags": "", "created_at": "2024-01-01T00:00:00Z"}
+        for i in range(4)
+    ]
+    out_imp = os.path.join(_TMP, "imp_fresh.json")
+    with open(out_imp, "w", encoding="utf-8") as _f:
+        _json_imp.dump(_fresh_json, _f)
+
+    before = len(_load2())
+    r = _import(out_imp, fmt="json", label="imp_dest", tags="imported")
+    after  = len(_load2())
+
+    assert r["imported"] == 4, f"Expected 4 imported, got {r['imported']}"
+    assert r["skipped_duplicates"] == 0
+    assert r["failed"] == 0
+    assert after == before + 4
+    ok(f"import JSON  -> imported={r['imported']} skipped={r['skipped_duplicates']} failed={r['failed']}")
+except Exception as e:
+    fail("import JSON", e)
+
+try:
+    # Re-import same file — all 4 skipped as duplicates
+    r2 = _import(out_imp, fmt="json", label="imp_dest")
+    assert r2["imported"] == 0
+    assert r2["skipped_duplicates"] == 4
+    ok(f"import duplicates skipped  -> skipped={r2['skipped_duplicates']}")
+except Exception as e:
+    fail("import duplicate skip", e)
+
+try:
+    # CSV import — fresh addresses
+    out_csv_imp = os.path.join(_TMP, "imp_fresh.csv")
+    _fresh_csv = [
+        {"address": f"ImpSol{i:038d}", "private_key": "cd" * 32,
+         "chain": "solana", "label": "csv_src", "tags": "", "created_at": "2024-01-01T00:00:00Z"}
+        for i in range(3)
+    ]
+    with open(out_csv_imp, "w", newline="", encoding="utf-8") as _f:
+        _w = _csv_imp.DictWriter(_f, fieldnames=["address","private_key","chain","label","tags","created_at"])
+        _w.writeheader(); _w.writerows(_fresh_csv)
+    r3 = _import(out_csv_imp, fmt="csv", label="imp_csv_dest")
+    assert r3["imported"] == 3
+    ok(f"import CSV  -> imported={r3['imported']}")
+except Exception as e:
+    fail("import CSV", e)
+
+try:
+    # Auto-detect format from .json extension
+    r4 = _import(out_imp, fmt="auto")
+    assert r4["format"] == "json"
+    assert r4["skipped_duplicates"] == 4  # already imported
+    ok(f"import fmt=auto detection  -> format={r4['format']}")
+except Exception as e:
+    fail("import fmt=auto", e)
+
+try:
+    # File not found guard
+    try:
+        _import(os.path.join(_TMP, "nonexistent.json"))
+        fail("missing file should raise FileNotFoundError", "no error raised")
+    except FileNotFoundError:
+        ok("import file not found  -> FileNotFoundError")
+except Exception as e:
+    fail("import file not found guard", e)
+
+try:
+    # server tool — success (re-import → all skipped)
+    from wallet_mcp.server import import_wallets as srv_imp
+    r5 = srv_imp(path=out_imp, label="srv_imp")
+    assert r5["status"] == "success"
+    assert r5["skipped_duplicates"] == 4
+    ok(f"server.import_wallets  -> status={r5['status']} skipped={r5['skipped_duplicates']}")
+except Exception as e:
+    fail("server.import_wallets", e)
+
+try:
+    # server tool — file not found
+    r6 = srv_imp(path="/no/such/file.json")
+    assert r6["status"] == "error"
+    ok(f"server.import_wallets error path  -> {r6['message'][:40]}")
+except Exception as e:
+    fail("server.import_wallets error path", e)
 
 # ════════════════════════════════════════════════════════════════════════════
 # Result

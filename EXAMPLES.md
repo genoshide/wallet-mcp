@@ -236,6 +236,76 @@ scan_token_balances(
 
 ---
 
+## Export Wallets
+
+### Export a Solana group to JSON (no private keys — safe to share)
+```
+export_wallets(label="drop_apr", chain="solana", format="json")
+```
+Output:
+```json
+{
+  "status": "success",
+  "path": "/home/user/.wallet-mcp/exports/wallets_2026-04-10_12-00-00.json",
+  "format": "json",
+  "count": 100,
+  "include_keys": false
+}
+```
+
+### Export to a specific path with private keys (for backup)
+```
+export_wallets(
+  label="drop_apr",
+  format="json",
+  path="/secure/backup/drop_apr.json",
+  include_keys=True
+)
+```
+
+### Export filtered group to CSV
+```
+export_wallets(chain="evm", tag="funded", format="csv")
+```
+
+---
+
+## Import Wallets
+
+### Import from a JSON backup (duplicates auto-skipped)
+```
+import_wallets(path="/backups/airdrop1.json", label="airdrop2")
+```
+Output:
+```json
+{
+  "status": "success",
+  "file": "/backups/airdrop1.json",
+  "format": "json",
+  "total_in_file": 100,
+  "imported": 98,
+  "skipped_duplicates": 2,
+  "failed": 0
+}
+```
+
+### Import CSV and override label + add tags
+```
+import_wallets(
+  path="/backups/wallets.csv",
+  fmt="csv",
+  label="campaign3",
+  tags="restored|batch1"
+)
+```
+
+### Auto-detect format from file extension
+```
+import_wallets(path="/backups/export.json")
+```
+
+---
+
 ## Natural Language (Claude Desktop)
 
 These prompts work directly in Claude Desktop after installing wallet-mcp:
@@ -250,3 +320,7 @@ These prompts work directly in Claude Desktop after installing wallet-mcp:
 - _"List all Solana wallets with the tag funded"_
 - _"Sweep all remaining SOL from my airdrop1 wallets back to my main wallet"_
 - _"Check which wallets in eth_test hold USDC"_
+- _"Export all my airdrop1 wallets to a JSON file for backup"_
+- _"Export funded EVM wallets to CSV without private keys"_
+- _"Import wallets from my backup file and put them in the airdrop2 group"_
+- _"Import wallets from campaign.csv and tag them as restored"_

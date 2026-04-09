@@ -5,6 +5,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.2.0] — 2026-04-10
+
+### Added
+- **`export_wallets`** — export any filtered wallet group to a JSON or CSV file;
+  `include_keys=False` by default for safety; path auto-generated under
+  `~/.wallet-mcp/exports/` when not specified
+- **`import_wallets`** — import wallets from a JSON or CSV file into local storage;
+  duplicate addresses are auto-skipped; label/tags can be overridden at import time;
+  format auto-detected from file extension
+
+---
+
 ## [1.1.0] — 2026-04-10
 
 ### Added

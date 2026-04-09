@@ -27,6 +27,8 @@ A production-ready MCP (Model Context Protocol) server that gives Claude, OpenCl
 | `generate_wallets` | Generate N wallets (Solana or EVM), save to local CSV |
 | `send_native_multi` | Send SOL / ETH from one wallet to a labeled group |
 | `sweep_wallets` | Collect all SOL / ETH from a group back to one destination |
+| `export_wallets` | Export a wallet group to JSON or CSV file for backup |
+| `import_wallets` | Import wallets from a JSON or CSV file into storage |
 | `list_wallets` | List wallets with chain / label / tag filters |
 | `get_balance_batch` | Fetch native balances for a wallet group |
 | `scan_token_balances` | Scan SPL / ERC-20 token balances across a wallet group |
@@ -129,6 +131,18 @@ Or if installed locally:
 
 ```
 → sweep_wallets(to_address="YourMainWallet...", chain="solana", label="airdrop1")
+```
+
+> **"Import wallets from backup file into my airdrop2 group"**
+
+```
+→ import_wallets(path="/backups/airdrop1.json", label="airdrop2")
+```
+
+> **"Export all airdrop1 wallets to a JSON file"**
+
+```
+→ export_wallets(label="airdrop1", format="json", path="/backups/airdrop1.json")
 ```
 
 > **"Check USDC balances across all my EVM wallets"**

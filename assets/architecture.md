@@ -17,9 +17,9 @@
 │               wallet-mcp  FastMCP Server  (server.py)               │
 │                                                                     │
 │  generate_wallets    send_native_multi   sweep_wallets               │
-│  list_wallets        get_balance_batch   scan_token_balances        │
-│  close_token_accts   scan_token_accts    tag_wallets                │
-│  group_summary       delete_group                                   │
+│  export_wallets      list_wallets        get_balance_batch          │
+│  scan_token_balances close_token_accts   scan_token_accts           │
+│  tag_wallets         group_summary       delete_group               │
 └──────────┬────────────────┬────────────────┬───────────────┬────────┘
            │                │                │               │
            ▼                ▼                ▼               ▼
@@ -68,7 +68,7 @@ Any MCP-compatible client that communicates with the server over the MCP protoco
 
 ### FastMCP Server (`server.py`)
 
-The MCP server layer. Exposes 11 tools via `@mcp.tool()` decorator. All tool inputs and outputs are typed dicts. Handles errors internally — always returns `{status: "success" | "error", ...}`.
+The MCP server layer. Exposes 13 tools via `@mcp.tool()` decorator. All tool inputs and outputs are typed dicts. Handles errors internally — always returns `{status: "success" | "error", ...}`.
 
 **Entry point:** `wallet_mcp.server:main`  
 **Transport:** stdio (default) or `streamable-http` (pass arg)  
@@ -81,6 +81,8 @@ The MCP server layer. Exposes 11 tools via `@mcp.tool()` decorator. All tool inp
 | `generate_wallets` | generator.py | EVM + Solana |
 | `send_native_multi` | distributor.py | EVM + Solana |
 | `sweep_wallets` | distributor.py | EVM + Solana |
+| `export_wallets` | exporter.py | Both |
+| `import_wallets` | importer.py | Both |
 | `list_wallets` | manager.py | Both |
 | `get_balance_batch` | manager.py | Both |
 | `scan_token_balances` | manager.py | EVM + Solana |
@@ -126,6 +128,16 @@ The MCP server layer. Exposes 11 tools via `@mcp.tool()` decorator. All tool inp
 - `sweep_sol_wallet` — sends `balance - leave_lamports` to destination
 - `close_token_accounts`: builds raw `CloseAccount` instruction (opcode 9) without SPL dependency
 - Token account parsing handles both `dict` and object forms across solana-py versions
+
+#### `exporter.py`
+- `export_wallets(wallets, fmt, output_path, include_keys)` — writes JSON (pretty-printed) or CSV
+- Strips private keys by default (`include_keys=False`)
+- Auto-generates timestamped filename under `~/.wallet-mcp/exports/` when path omitted
+
+#### `importer.py`
+- `import_wallets(file_path, fmt, label, tags)` — reads JSON array or CSV, skips duplicates, saves new wallets
+- Format auto-detected from `.json` / `.csv` extension when `fmt='auto'`
+- Label and tags can be overridden at import time; falls back to file's own `label` field
 
 #### `storage.py`
 - Plain CSV, no ORM, no database
