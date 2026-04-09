@@ -11,7 +11,7 @@ def generate_wallets(chain: str, count: int, label: str, tags: str = "") -> list
     Generate `count` wallets for `chain` ('solana' | 'evm').
     Saves to CSV and returns list of wallet dicts.
     """
-    from .storage import save_wallets_batch, wallet_exists
+    from .storage import save_wallets_batch, load_wallets
 
     chain = chain.lower()
     if chain not in ("solana", "evm"):
@@ -25,14 +25,16 @@ def generate_wallets(chain: str, count: int, label: str, tags: str = "") -> list
         else _import("wallet_mcp.core.solana", "generate_solana_wallet")
     )
 
-    now     = now_iso()
-    wallets = []
+    now      = now_iso()
+    existing = {w["address"] for w in load_wallets()}
+    wallets  = []
 
     for _ in range(count):
         w = gen_fn()
-        if wallet_exists(w["address"]):
+        if w["address"] in existing:
             _log.warning(f"Duplicate address skipped: {w['address']}")
             continue
+        existing.add(w["address"])
         wallets.append({
             "address":     w["address"],
             "private_key": w["private_key"],
