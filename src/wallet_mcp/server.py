@@ -354,6 +354,46 @@ def sweep_wallets(
         return {"status": "error", "message": str(e)}
 
 
+# ── 11. scan_token_balances ────────────────────────────────────────────────
+
+@mcp.tool()
+def scan_token_balances(
+    chain: str,
+    label: str = "",
+    tag:   str = "",
+    token: str = "",
+    rpc:   str = "",
+) -> dict:
+    """
+    Scan SPL / ERC-20 token balances for all wallets in a group.
+
+    For Solana: returns all token accounts per wallet (or filter to one mint via `token`).
+    For EVM:    `token` (ERC-20 contract address) is required.
+
+    Args:
+        chain: 'solana' or 'evm'
+        label: filter by wallet group label — optional
+        tag:   filter by tag — optional
+        token: SPL mint address (Solana) or ERC-20 contract address (EVM)
+        rpc:   custom RPC URL — optional
+
+    Returns:
+        {status, chain, token, total_wallets, wallets_with_balance, results}
+    """
+    try:
+        from wallet_mcp.core.manager import scan_token_balances as _scan
+        result = _scan(
+            chain=chain,
+            label=label or None,
+            tag=tag or None,
+            token=token or None,
+            rpc_url=rpc or None,
+        )
+        return {"status": "success", **result}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
 # ── Entry point ────────────────────────────────────────────────────────────
 
 def main() -> None:

@@ -85,7 +85,7 @@ except Exception as e:
 try:
     from wallet_mcp.server import mcp
     tools = list(mcp._tool_manager._tools.keys())
-    assert len(tools) == 10, f"Expected 10 tools, got {len(tools)}"
+    assert len(tools) == 11, f"Expected 11 tools, got {len(tools)}"
     ok(f"FastMCP server  ({len(tools)} tools registered)")
 except Exception as e:
     fail("FastMCP server", e)
@@ -358,6 +358,51 @@ try:
     ok(f"server error handling  → {r['message'][:40]}")
 except Exception as e:
     fail("server error handling", e)
+
+# ════════════════════════════════════════════════════════════════════════════
+section("13. Token Balance Scan (offline / no-RPC)")
+# ════════════════════════════════════════════════════════════════════════════
+
+# Test manager.scan_token_balances with no wallets (empty filter)
+try:
+    from wallet_mcp.core.manager import scan_token_balances
+    r = scan_token_balances(chain="evm", label="nonexistent_label")
+    assert r["total_wallets"] == 0
+    assert r["results"] == []
+    ok("scan_token_balances empty label  → total_wallets=0")
+except Exception as e:
+    fail("scan_token_balances empty", e)
+
+# EVM: missing token address should raise ValueError
+try:
+    from wallet_mcp.core.manager import scan_token_balances
+    from wallet_mcp.core.generator import generate_wallets
+    generate_wallets("evm", 2, "tkn_test")
+    try:
+        scan_token_balances(chain="evm", label="tkn_test")
+        fail("evm scan without token should raise", "no error raised")
+    except ValueError as ve:
+        ok(f"EVM scan without token  -> ValueError: {str(ve)[:45]}")
+except Exception as e:
+    fail("EVM scan ValueError guard", e)
+
+# server.scan_token_balances: error path
+try:
+    from wallet_mcp.server import scan_token_balances as srv_scan
+    r = srv_scan(chain="evm", label="tkn_test")   # missing token -> error
+    assert r["status"] == "error"
+    ok(f"server.scan_token_balances error path  -> {r['message'][:45]}")
+except Exception as e:
+    fail("server.scan_token_balances error path", e)
+
+# server.scan_token_balances: success path (no wallets for unknown label)
+try:
+    r = srv_scan(chain="solana", label="no_such_label")
+    assert r["status"] == "success"
+    assert r["total_wallets"] == 0
+    ok("server.scan_token_balances success (0 wallets)  -> ok")
+except Exception as e:
+    fail("server.scan_token_balances success path", e)
 
 # ════════════════════════════════════════════════════════════════════════════
 # Result

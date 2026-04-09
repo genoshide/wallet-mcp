@@ -3,6 +3,7 @@ Solana wallet operations: generation, SOL transfer, SPL token account management
 """
 import os
 import base58
+from typing import Optional
 
 DEFAULT_RPC = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
 LAMPORTS_PER_SOL = 1_000_000_000
@@ -131,6 +132,42 @@ def get_token_accounts(owner_address: str, rpc_url: str = DEFAULT_RPC) -> list[d
             except (KeyError, TypeError, AttributeError):
                 continue
     return accounts
+
+
+def get_spl_balances_batch(
+    addresses: list[str],
+    mint: Optional[str] = None,
+    rpc_url: str = DEFAULT_RPC,
+) -> list[dict]:
+    """
+    Fetch SPL token balances for multiple Solana wallets.
+
+    Args:
+        addresses: list of wallet public keys
+        mint:      filter to a specific token mint address (optional — all tokens if omitted)
+        rpc_url:   custom RPC URL
+
+    Returns list of {address, tokens: [{mint, symbol, balance, decimals}], status}.
+    """
+    rpc_url = rpc_url or DEFAULT_RPC
+    results = []
+    for addr in addresses:
+        try:
+            accounts = get_token_accounts(addr, rpc_url)
+            if mint:
+                accounts = [a for a in accounts if a.get("mint") == mint]
+            tokens = [
+                {
+                    "mint":     a["mint"],
+                    "balance":  round(a["amount"] / (10 ** a["decimals"]), a["decimals"]) if a["decimals"] else a["amount"],
+                    "decimals": a["decimals"],
+                }
+                for a in accounts
+            ]
+            results.append({"address": addr, "tokens": tokens, "status": "ok"})
+        except Exception as e:
+            results.append({"address": addr, "tokens": [], "status": "error", "error": str(e)})
+    return results
 
 
 def sweep_sol_wallet(

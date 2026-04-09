@@ -43,6 +43,57 @@ def get_evm_balances_batch(addresses: list[str], rpc_url: str = DEFAULT_RPC) -> 
     return results
 
 
+_ERC20_ABI = [
+    {"inputs": [{"name": "account", "type": "address"}], "name": "balanceOf",
+     "outputs": [{"name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"},
+    {"inputs": [], "name": "decimals",
+     "outputs": [{"name": "", "type": "uint8"}], "stateMutability": "view", "type": "function"},
+    {"inputs": [], "name": "symbol",
+     "outputs": [{"name": "", "type": "string"}], "stateMutability": "view", "type": "function"},
+]
+
+
+def get_erc20_balances_batch(
+    addresses: list[str],
+    token_contract: str,
+    rpc_url: str = DEFAULT_RPC,
+) -> list[dict]:
+    """
+    Fetch ERC-20 token balances for multiple addresses.
+
+    Returns list of {address, balance, symbol, status} — balance is human-readable (divided by decimals).
+    """
+    from web3 import Web3
+
+    rpc_url = rpc_url or DEFAULT_RPC
+    w3 = Web3(Web3.HTTPProvider(rpc_url))
+    if not w3.is_connected():
+        raise ConnectionError(f"Cannot connect to RPC: {rpc_url}")
+
+    contract = w3.eth.contract(
+        address=Web3.to_checksum_address(token_contract),
+        abi=_ERC20_ABI,
+    )
+    try:
+        decimals = contract.functions.decimals().call()
+    except Exception:
+        decimals = 18
+    try:
+        symbol = contract.functions.symbol().call()
+    except Exception:
+        symbol = "???"
+
+    results = []
+    for addr in addresses:
+        try:
+            raw = contract.functions.balanceOf(Web3.to_checksum_address(addr)).call()
+            balance = raw / (10 ** decimals)
+            results.append({"address": addr, "balance": round(balance, decimals), "symbol": symbol, "status": "ok"})
+        except Exception as e:
+            results.append({"address": addr, "balance": None, "symbol": symbol, "status": "error", "error": str(e)})
+    return results
+
+
 def sweep_eth_wallet(
     from_private_key: str,
     to_address: str,

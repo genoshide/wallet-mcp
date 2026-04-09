@@ -69,6 +69,62 @@ def group_summary() -> list[dict]:
     return [{"label": k, **v} for k, v in groups.items()]
 
 
+def scan_token_balances(
+    chain:          str,
+    label:          Optional[str] = None,
+    tag:            Optional[str] = None,
+    token:          Optional[str] = None,
+    rpc_url:        Optional[str] = None,
+) -> dict:
+    """
+    Scan SPL / ERC-20 token balances for all wallets matching the filter.
+
+    Args:
+        chain:   'solana' or 'evm'
+        label:   filter by group label
+        tag:     filter by tag
+        token:   SPL mint address (Solana) or ERC-20 contract address (EVM).
+                 Optional for Solana (returns all tokens); required for EVM.
+        rpc_url: custom RPC URL
+
+    Returns:
+        {chain, token, total_wallets, wallets_with_balance, results}
+    """
+    from .storage import filter_wallets
+
+    chain   = chain.lower()
+    wallets = filter_wallets(chain=chain, label=label, tag=tag)
+    if not wallets:
+        return {"chain": chain, "token": token, "total_wallets": 0,
+                "wallets_with_balance": 0, "results": []}
+
+    addresses = [w["address"] for w in wallets]
+
+    if chain == "solana":
+        from .solana import get_spl_balances_batch, DEFAULT_RPC
+        results = get_spl_balances_batch(addresses, mint=token, rpc_url=rpc_url or DEFAULT_RPC)
+        wallets_with_balance = sum(1 for r in results if r.get("tokens"))
+
+    elif chain == "evm":
+        if not token:
+            raise ValueError("EVM token scan requires a contract address via the 'token' parameter.")
+        from .evm import get_erc20_balances_batch, DEFAULT_RPC
+        results = get_erc20_balances_batch(addresses, token_contract=token, rpc_url=rpc_url or DEFAULT_RPC)
+        wallets_with_balance = sum(1 for r in results if r.get("balance") and r["balance"] > 0)
+
+    else:
+        raise ValueError(f"Unsupported chain: {chain}")
+
+    _log.info(f"Token scan: chain={chain} token={token} wallets={len(wallets)} with_balance={wallets_with_balance}")
+    return {
+        "chain":               chain,
+        "token":               token,
+        "total_wallets":       len(wallets),
+        "wallets_with_balance": wallets_with_balance,
+        "results":             results,
+    }
+
+
 def tag_label(label: str, tag: str) -> dict:
     from .storage import tag_wallets
     updated = tag_wallets(label, tag)
