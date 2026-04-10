@@ -485,7 +485,10 @@ def import_wallets(
 
 def main() -> None:
     import argparse as _ap
-    p = _ap.ArgumentParser(add_help=False)
+    p = _ap.ArgumentParser(
+        prog="wallet-mcp",
+        description="Multi Wallet Generator + Manager — MCP Server",
+    )
     p.add_argument("transport", nargs="?", default="stdio",
                    choices=["stdio", "streamable-http"])
     p.add_argument("--host", default="0.0.0.0")
