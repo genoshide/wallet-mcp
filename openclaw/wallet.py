@@ -27,9 +27,23 @@ import argparse
 import json
 import sys
 import os
+import glob as _glob
 
-# Allow running from any directory
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+# 1. Allow running from a local clone (wallet.py lives in openclaw/, wallet_mcp in ../src/)
+_here = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(_here, ".."))
+sys.path.insert(0, os.path.join(_here, "..", "src"))
+
+# 2. Find wallet_mcp installed via `uv tool install wallet-mcp`
+for _pattern in [
+    os.path.expanduser("~/.local/share/uv/tools/wallet-mcp/lib/python*/site-packages"),
+    "/root/.local/share/uv/tools/wallet-mcp/lib/python*/site-packages",
+    "/home/*/.local/share/uv/tools/wallet-mcp/lib/python*/site-packages",
+]:
+    for _sp in _glob.glob(_pattern):
+        if os.path.isdir(os.path.join(_sp, "wallet_mcp")):
+            sys.path.insert(0, _sp)
+            break
 
 # Load .env before importing wallet_mcp
 try:
