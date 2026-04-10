@@ -1,6 +1,6 @@
 # SKILL: wallet-mcp
 description: Multi-chain wallet generator and manager. Supports Solana and EVM. All outputs are JSON.
-version: 1.0.0
+version: 1.2.0
 tool_path: ~/.openclaw/tools/wallet.py
 
 ---
@@ -29,6 +29,19 @@ python wallet.py send_native_multi --from-key 5Kd3... --label airdrop1 --amount 
 
 ---
 
+## sweep_wallets
+Collect all SOL or ETH from every wallet in a group back to one destination address.
+Each wallet sends its full balance minus a small fee reserve.
+```
+command: python {tool_path} sweep_wallets --to-address <ADDRESS> --chain <solana|evm> [--label <label>] [--tag <tag>] [--rpc <URL>] [--leave-lamports 5000] [--delay-min 1] [--delay-max 10] [--retries 3]
+```
+Example:
+```
+python wallet.py sweep_wallets --to-address So1anaMain... --chain solana --label airdrop1
+```
+
+---
+
 ## list_wallets
 List wallets with optional filters. Private keys are masked by default.
 ```
@@ -45,6 +58,46 @@ command: python {tool_path} get_balance_batch [--chain <solana|evm>] [--label <l
 
 ---
 
+## scan_token_balances
+Scan SPL token balances across a Solana group (all tokens, or filter by mint),
+or ERC-20 token balances across an EVM group (contract address required).
+```
+command: python {tool_path} scan_token_balances --chain <solana|evm> [--label <label>] [--tag <tag>] [--token <MINT_OR_CONTRACT>] [--rpc <URL>]
+```
+Example:
+```
+python wallet.py scan_token_balances --chain solana --label airdrop1
+python wallet.py scan_token_balances --chain evm --label eth_test --token 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+```
+
+---
+
+## export_wallets
+Export a wallet group to a JSON or CSV file for backup or offline use.
+Private keys are excluded by default (`--include-keys` to include them).
+```
+command: python {tool_path} export_wallets [--chain <solana|evm>] [--label <label>] [--tag <tag>] [--format <json|csv>] [--path <FILE>] [--include-keys]
+```
+Example:
+```
+python wallet.py export_wallets --label airdrop1 --format json --path /backups/airdrop1.json
+```
+
+---
+
+## import_wallets
+Import wallets from a JSON or CSV file into local storage.
+Duplicate addresses are skipped automatically.
+```
+command: python {tool_path} import_wallets --path <FILE> [--format <auto|json|csv>] [--label <label>] [--tags <tag1|tag2>]
+```
+Example:
+```
+python wallet.py import_wallets --path /backups/airdrop1.json --label airdrop2 --tags restored
+```
+
+---
+
 ## close_token_accounts
 Close empty SPL token accounts and reclaim rent SOL. (Solana only)
 ```
@@ -54,7 +107,7 @@ command: python {tool_path} close_token_accounts --private-key <KEY_B58> [--rpc 
 ---
 
 ## scan_token_accounts
-Scan all SPL token accounts for a Solana wallet (read-only, no changes).
+Scan all SPL token accounts for a single Solana wallet (read-only, no changes).
 ```
 command: python {tool_path} scan_token_accounts --address <PUBKEY> [--rpc <URL>]
 ```

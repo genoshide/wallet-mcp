@@ -18,6 +18,10 @@ Examples:
     python wallet.py close_token_accounts --private-key 5Kd3...
     python wallet.py scan_token_accounts --address So1ana...
     python wallet.py send_native_multi --from-key 5Kd3... --label airdrop1 --amount 0.01 --chain solana
+    python wallet.py sweep_wallets --to-address So1ana... --chain solana --label airdrop1
+    python wallet.py scan_token_balances --chain solana --label airdrop1
+    python wallet.py export_wallets --label airdrop1 --format json --path /tmp/backup.json
+    python wallet.py import_wallets --path /tmp/backup.json --label airdrop2
 """
 import argparse
 import json
@@ -123,6 +127,57 @@ def cmd_delete_group(args):
     _out({"status": "success", **delete_group(label=args.label)})
 
 
+def cmd_sweep_wallets(args):
+    from wallet_mcp.core.storage import filter_wallets
+    from wallet_mcp.core.distributor import sweep_native_multi
+    wallets = filter_wallets(chain=args.chain, label=args.label or None,
+                             tag=args.tag or None)
+    if not wallets:
+        _err(f"No wallets found for chain={args.chain} label={args.label}")
+    _out(sweep_native_multi(
+        wallets=wallets,
+        to_address=args.to_address,
+        chain=args.chain,
+        rpc_url=args.rpc or None,
+        leave_lamports=args.leave_lamports,
+        delay_min=args.delay_min,
+        delay_max=args.delay_max,
+        retry_attempts=args.retries,
+    ))
+
+
+def cmd_scan_token_balances(args):
+    from wallet_mcp.core.manager import scan_token_balances
+    result = scan_token_balances(
+        chain=args.chain,
+        label=args.label or None,
+        tag=args.tag or None,
+        token=args.token or None,
+        rpc_url=args.rpc or None,
+    )
+    _out({"status": "success", **result})
+
+
+def cmd_export_wallets(args):
+    from wallet_mcp.core.storage import filter_wallets
+    from wallet_mcp.core.exporter import export_wallets
+    wallets = filter_wallets(chain=args.chain or None, label=args.label or None,
+                             tag=args.tag or None)
+    if not wallets:
+        _err("No wallets match the given filters.")
+    result = export_wallets(wallets=wallets, fmt=args.format,
+                            output_path=args.path or None,
+                            include_keys=args.include_keys)
+    _out({"status": "success", **result})
+
+
+def cmd_import_wallets(args):
+    from wallet_mcp.core.importer import import_wallets
+    result = import_wallets(file_path=args.path, fmt=args.format,
+                            label=args.label or None, tags=args.tags or "")
+    _out({"status": "success", **result})
+
+
 # ── Parser ────────────────────────────────────────────────────────────────
 
 def build_parser():
@@ -188,6 +243,43 @@ def build_parser():
     d = sub.add_parser("delete_group")
     d.add_argument("--label", required=True)
 
+    # sweep_wallets
+    sw = sub.add_parser("sweep_wallets")
+    sw.add_argument("--to-address",     required=True, dest="to_address")
+    sw.add_argument("--chain",          required=True, choices=["solana", "evm"])
+    sw.add_argument("--label",          default=None)
+    sw.add_argument("--tag",            default=None)
+    sw.add_argument("--rpc",            default=None)
+    sw.add_argument("--leave-lamports", type=int, default=5000, dest="leave_lamports")
+    sw.add_argument("--delay-min",      type=int, default=1,    dest="delay_min")
+    sw.add_argument("--delay-max",      type=int, default=10,   dest="delay_max")
+    sw.add_argument("--retries",        type=int, default=3)
+
+    # scan_token_balances
+    stb = sub.add_parser("scan_token_balances")
+    stb.add_argument("--chain",  required=True, choices=["solana", "evm"])
+    stb.add_argument("--label",  default=None)
+    stb.add_argument("--tag",    default=None)
+    stb.add_argument("--token",  default=None,
+                     help="SPL mint (Solana) or ERC-20 contract address (EVM, required)")
+    stb.add_argument("--rpc",    default=None)
+
+    # export_wallets
+    ew = sub.add_parser("export_wallets")
+    ew.add_argument("--chain",        default=None)
+    ew.add_argument("--label",        default=None)
+    ew.add_argument("--tag",          default=None)
+    ew.add_argument("--format",       default="json", choices=["json", "csv"])
+    ew.add_argument("--path",         default=None)
+    ew.add_argument("--include-keys", action="store_true", dest="include_keys")
+
+    # import_wallets
+    iw = sub.add_parser("import_wallets")
+    iw.add_argument("--path",   required=True)
+    iw.add_argument("--format", default="auto", choices=["auto", "json", "csv"])
+    iw.add_argument("--label",  default=None)
+    iw.add_argument("--tags",   default="")
+
     return p
 
 
@@ -201,6 +293,10 @@ DISPATCH = {
     "tag_wallets":          cmd_tag_wallets,
     "group_summary":        cmd_group_summary,
     "delete_group":         cmd_delete_group,
+    "sweep_wallets":        cmd_sweep_wallets,
+    "scan_token_balances":  cmd_scan_token_balances,
+    "export_wallets":       cmd_export_wallets,
+    "import_wallets":       cmd_import_wallets,
 }
 
 
