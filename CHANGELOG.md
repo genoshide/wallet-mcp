@@ -5,6 +5,27 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.3.0] — 2026-04-10
+
+### Added
+- **OpenClaw integration update** — `openclaw/SKILL.md` bumped to v1.2.0 with full docs
+  for all 13 tools including `sweep_wallets`, `scan_token_balances`, `export_wallets`,
+  `import_wallets`
+- **`openclaw/wallet.py`** updated with 4 new CLI commands matching the new tools
+- **`OPENCLAW.md`** fully rewritten — step-by-step install guide covering:
+  - Linux/macOS and Windows uv install
+  - OpenClaw install via npm
+  - Telegram, Discord, WhatsApp channel configuration
+  - AI model setup (Claude, OpenAI, Gemini, OpenRouter)
+  - SKILL.md + wallet.py deployment
+  - RPC endpoint configuration with provider comparison table
+  - systemd service setup
+  - Wallet storage security hardening
+  - Natural language → command mapping table for all 13 tools
+  - Troubleshooting table and update instructions
+
+---
+
 ## [1.2.0] — 2026-04-10
 
 ### Added
