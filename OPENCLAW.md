@@ -175,11 +175,11 @@ openclaw config set agents.defaults.apiKey "sk-or-..."
 
 ```bash
 # Create required directories
-mkdir -p ~/.agents/skills/wallet-mcp ~/.openclaw/tools
+mkdir -p ~/.openclaw/workspace/skills/wallet-mcp ~/.openclaw/tools
 
 # Download SKILL.md — tells the agent what commands are available
 curl -fsSL https://raw.githubusercontent.com/genoshide/wallet-mcp/main/openclaw/SKILL.md \
-  -o ~/.agents/skills/wallet-mcp/SKILL.md
+  -o ~/.openclaw/workspace/skills/wallet-mcp/SKILL.md
 
 # Download wallet.py — the CLI wrapper the agent will execute
 curl -fsSL https://raw.githubusercontent.com/genoshide/wallet-mcp/main/openclaw/wallet.py \
@@ -292,7 +292,7 @@ Once running, send these natural language messages to your bot:
 | `No wallets found` | Wrong label | Send _"show all wallet groups"_ to check |
 | `Cannot connect to RPC` | Rate-limited or wrong URL | Set `SOLANA_RPC_URL` / `EVM_RPC_URL` in `.env` |
 | `which agent?` loop | defaultAgent not set | `openclaw config set acp.defaultAgent main` |
-| Agent ignores wallet commands | SKILL.md not loaded | Verify path: `ls ~/.agents/skills/wallet-mcp/SKILL.md` |
+| Agent ignores wallet commands | SKILL.md not loaded | Verify path: `ls ~/.openclaw/workspace/skills/wallet-mcp/SKILL.md` |
 | Gateway not starting | Port conflict | `openclaw config set gateway.port 8765` |
 
 ---
@@ -305,7 +305,7 @@ uv tool upgrade wallet-mcp
 
 # Re-download SKILL.md and wallet.py to get new commands
 curl -fsSL https://raw.githubusercontent.com/genoshide/wallet-mcp/main/openclaw/SKILL.md \
-  -o ~/.agents/skills/wallet-mcp/SKILL.md
+  -o ~/.openclaw/workspace/skills/wallet-mcp/SKILL.md
 
 curl -fsSL https://raw.githubusercontent.com/genoshide/wallet-mcp/main/openclaw/wallet.py \
   -o ~/.openclaw/tools/wallet.py && chmod +x ~/.openclaw/tools/wallet.py
@@ -323,7 +323,7 @@ systemctl --user restart openclaw-gateway.service
 | `~/.openclaw/openclaw.json` | Channel config (Telegram token, Discord token, etc.) |
 | `~/.openclaw/tools/wallet.py` | CLI wrapper executed by the agent |
 | `~/.openclaw/.env` | API keys and RPC URLs |
-| `~/.agents/skills/wallet-mcp/SKILL.md` | Tool descriptions read by the agent |
+| `~/.openclaw/workspace/skills/wallet-mcp/SKILL.md` | Tool descriptions read by the agent (actual OpenClaw path) |
 | `~/.wallet-mcp/wallets.csv` | Wallet storage (address + private key) |
 | `~/.wallet-mcp/wallet-mcp.log` | Operation logs |
 | `~/.wallet-mcp/exports/` | Exported wallet files |
