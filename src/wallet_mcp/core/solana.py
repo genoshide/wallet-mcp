@@ -89,48 +89,110 @@ _RENT_PER_ACCOUNT = 0.00203928  # approximate SOL rent for one token account
 
 
 def get_token_accounts(owner_address: str, rpc_url: str = DEFAULT_RPC) -> list[dict]:
-    """Return all SPL token accounts for `owner_address`."""
+    """
+    Return all SPL token accounts for `owner_address`.
+
+    Tries jsonParsed encoding first (returns rich data).
+    Falls back to base64 binary parsing if the installed solana-py version
+    does not accept the encoding kwarg.
+    """
     from solana.rpc.api import Client
     from solana.rpc.types import TokenAccountOpts
     from solders.pubkey import Pubkey
 
     rpc_url = rpc_url or DEFAULT_RPC
-    client = Client(rpc_url)
-    owner  = Pubkey.from_string(owner_address)
-    TOKEN  = Pubkey.from_string(_TOKEN_PROGRAM)
+    client  = Client(rpc_url)
+    owner   = Pubkey.from_string(owner_address)
+    TOKEN   = Pubkey.from_string(_TOKEN_PROGRAM)
+    opts    = TokenAccountOpts(program_id=TOKEN)
 
-    resp = client.get_token_accounts_by_owner(
-        owner,
-        TokenAccountOpts(program_id=TOKEN),
-        encoding="jsonParsed",
-    )
+    # Try jsonParsed (works on solana-py versions that accept encoding kwarg)
+    try:
+        resp = client.get_token_accounts_by_owner(owner, opts, encoding="jsonParsed")
+        return _parse_token_accounts_json(resp)
+    except TypeError:
+        pass  # encoding kwarg not supported — fall through to binary parse
+
+    # Fallback: default base64 encoding + manual binary decode
+    resp = client.get_token_accounts_by_owner(owner, opts)
+    return _parse_token_accounts_binary(resp, client)
+
+
+def _parse_token_accounts_json(resp) -> list[dict]:
     accounts = []
-    if resp.value:
-        for acc in resp.value:
-            try:
-                # solana-py returns account.data as dict when encoding=jsonParsed
-                data = acc.account.data
-                # Handle both dict and object forms across solana-py versions
-                if isinstance(data, dict):
-                    parsed = data.get("parsed", {})
-                elif hasattr(data, "parsed"):
-                    parsed = data.parsed
-                else:
-                    continue
-
-                info   = parsed.get("info", {}) if isinstance(parsed, dict) else {}
-                amount = info.get("tokenAmount", {})
-                if not info or not amount:
-                    continue
-
-                accounts.append({
-                    "pubkey":   str(acc.pubkey),
-                    "mint":     info.get("mint", ""),
-                    "amount":   int(amount.get("amount", 0)),
-                    "decimals": int(amount.get("decimals", 0)),
-                })
-            except (KeyError, TypeError, AttributeError):
+    if not resp.value:
+        return accounts
+    for acc in resp.value:
+        try:
+            data = acc.account.data
+            if isinstance(data, dict):
+                parsed = data.get("parsed", {})
+            elif hasattr(data, "parsed"):
+                parsed = data.parsed
+            else:
                 continue
+            info   = parsed.get("info", {}) if isinstance(parsed, dict) else {}
+            amount = info.get("tokenAmount", {})
+            if not info or not amount:
+                continue
+            accounts.append({
+                "pubkey":   str(acc.pubkey),
+                "mint":     info.get("mint", ""),
+                "amount":   int(amount.get("amount", 0)),
+                "decimals": int(amount.get("decimals", 0)),
+            })
+        except (KeyError, TypeError, AttributeError):
+            continue
+    return accounts
+
+
+def _parse_token_accounts_binary(resp, client) -> list[dict]:
+    """
+    Parse base64-encoded SPL Token account data (165-byte layout).
+    Bytes 0-31: mint pubkey  |  bytes 64-71: amount (u64 LE)
+    Decimals fetched from the Mint account via get_token_supply (cached).
+    """
+    import base64
+    import struct
+    from solders.pubkey import Pubkey
+
+    accounts     = []
+    mint_decimals: dict[str, int] = {}
+
+    if not resp.value:
+        return accounts
+
+    for acc in resp.value:
+        try:
+            raw = acc.account.data
+            if isinstance(raw, (list, tuple)) and raw:
+                data_bytes = base64.b64decode(raw[0])
+            elif isinstance(raw, (bytes, bytearray)):
+                data_bytes = bytes(raw)
+            else:
+                continue
+
+            if len(data_bytes) < 72:
+                continue
+
+            mint_pubkey = str(Pubkey.from_bytes(data_bytes[0:32]))
+            amount      = struct.unpack_from("<Q", data_bytes, 64)[0]
+
+            if mint_pubkey not in mint_decimals:
+                try:
+                    supply = client.get_token_supply(Pubkey.from_string(mint_pubkey))
+                    mint_decimals[mint_pubkey] = supply.value.decimals
+                except Exception:
+                    mint_decimals[mint_pubkey] = 0
+
+            accounts.append({
+                "pubkey":   str(acc.pubkey),
+                "mint":     mint_pubkey,
+                "amount":   amount,
+                "decimals": mint_decimals[mint_pubkey],
+            })
+        except Exception:
+            continue
     return accounts
 
 
