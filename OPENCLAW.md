@@ -197,6 +197,46 @@ python ~/.openclaw/tools/wallet.py group_summary
 
 ---
 
+## Part 5b — Register wallet-mcp in Agent Memory (Prevents Forgetting)
+
+By default, OpenClaw agents reset context after `/new`. Run this **once** on the server
+to permanently register wallet-mcp in the agent's persistent memory file (`TOOLS.md`),
+so the agent always knows about wallet commands regardless of `/new`:
+
+```bash
+wallet-mcp openclaw-setup
+```
+
+Expected output:
+
+```
+[wallet-mcp] wallet-mcp entry added to ~/.openclaw/workspace/TOOLS.md
+  The OpenClaw agent will now load wallet-mcp on every session.
+  Send /new in your chat and test with: show all wallet groups
+```
+
+**Idempotent** — safe to run multiple times. Re-running when the entry already exists:
+
+```
+[wallet-mcp] wallet-mcp entry already present in ~/.openclaw/workspace/TOOLS.md
+  Nothing to do.
+```
+
+> **Why this matters:** OpenClaw reads `TOOLS.md` at the start of every session,
+> including after `/new`. Without this step, the agent may forget wallet-mcp exists
+> and search the web instead of calling `wallet.py`.
+
+### Verify it worked
+
+```bash
+grep -A 3 "wallet-mcp" ~/.openclaw/workspace/TOOLS.md
+```
+
+Then in your chat, send `/new` followed by _"show all wallet groups"_ — the agent
+should call `wallet.py group_summary` instead of searching the web.
+
+---
+
 ## Part 6 — Configure RPC Endpoints (Optional but Recommended)
 
 Public RPC endpoints are rate-limited. Set private endpoints for production:

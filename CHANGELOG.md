@@ -5,6 +5,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.4.0] — 2026-04-10
+
+### Added
+- **`wallet-mcp openclaw-setup`** — new CLI subcommand that automatically appends the
+  wallet-mcp skill entry to `~/.openclaw/workspace/TOOLS.md`.
+  Prevents the OpenClaw agent from forgetting wallet-mcp after `/new` by registering
+  it in the persistent agent memory file that is loaded on every session.
+  Idempotent — safe to run multiple times; skips if entry already present.
+- **`OPENCLAW.md` Part 5b** — documents the `openclaw-setup` command with expected output,
+  idempotency note, and verification steps.
+
+---
+
 ## [1.3.0] — 2026-04-10
 
 ### Added

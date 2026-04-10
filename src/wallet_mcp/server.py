@@ -481,6 +481,66 @@ def import_wallets(
         return {"status": "error", "message": str(e)}
 
 
+# ── OpenClaw setup helper ──────────────────────────────────────────────────
+
+_TOOLS_MD_ENTRY = """
+## wallet-mcp
+
+Wallet generation and management for Solana and EVM chains.
+
+**Always use this tool for any wallet-related request** — do NOT search the web.
+
+Execute via:
+    python ~/.openclaw/tools/wallet.py <command> [--arg value ...]
+
+Skill reference: ~/.openclaw/workspace/skills/wallet-mcp/SKILL.md
+
+Key commands:
+- generate_wallets --chain solana --count N --label NAME
+- list_wallets --label NAME
+- get_balance_batch --label NAME
+- send_native_multi --from-key KEY --label NAME --amount N --chain solana
+- sweep_wallets --to-address ADDR --chain solana --label NAME
+- scan_token_balances --chain solana --label NAME
+- close_token_accounts --private-key KEY
+- export_wallets --label NAME --format json
+- import_wallets --path FILE --label NAME
+- group_summary
+- tag_wallets --label NAME --tag TAG
+- delete_group --label NAME
+"""
+
+
+def _openclaw_setup() -> None:
+    """
+    Append wallet-mcp entry to ~/.openclaw/workspace/TOOLS.md so the
+    OpenClaw agent loads it on every session (including after /new).
+    Idempotent — safe to run multiple times.
+    """
+    import os
+
+    tools_md = os.path.expanduser("~/.openclaw/workspace/TOOLS.md")
+
+    if not os.path.isfile(tools_md):
+        print(f"[wallet-mcp] TOOLS.md not found at {tools_md}")
+        print("  Make sure OpenClaw is installed and has been started at least once.")
+        print("  Then re-run: wallet-mcp openclaw-setup")
+        raise SystemExit(1)
+
+    content = open(tools_md, encoding="utf-8").read()
+    if "## wallet-mcp" in content:
+        print(f"[wallet-mcp] wallet-mcp entry already present in {tools_md}")
+        print("  Nothing to do.")
+        return
+
+    with open(tools_md, "a", encoding="utf-8") as fh:
+        fh.write(_TOOLS_MD_ENTRY)
+
+    print(f"[wallet-mcp] wallet-mcp entry added to {tools_md}")
+    print("  The OpenClaw agent will now load wallet-mcp on every session.")
+    print("  Send /new in your chat and test with: show all wallet groups")
+
+
 # ── Entry point ────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -490,12 +550,14 @@ def main() -> None:
         description="Multi Wallet Generator + Manager — MCP Server",
     )
     p.add_argument("transport", nargs="?", default="stdio",
-                   choices=["stdio", "streamable-http"])
+                   choices=["stdio", "streamable-http", "openclaw-setup"])
     p.add_argument("--host", default="0.0.0.0")
     p.add_argument("--port", type=int, default=8000)
     opts, _ = p.parse_known_args()
 
-    if opts.transport == "streamable-http":
+    if opts.transport == "openclaw-setup":
+        _openclaw_setup()
+    elif opts.transport == "streamable-http":
         mcp.run(transport="streamable-http", host=opts.host, port=opts.port)
     else:
         mcp.run()
