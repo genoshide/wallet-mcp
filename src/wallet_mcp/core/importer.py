@@ -58,10 +58,13 @@ def import_wallets(
     failed  = 0
     skipped = 0
 
+    missing_key_count = 0
     for row in raw:
         missing = _REQUIRED - set(row.keys())
         if missing:
             _log.warning(f"Skipping row — missing fields {missing}: {row.get('address','?')}")
+            if "private_key" in missing:
+                missing_key_count += 1
             failed += 1
             continue
 
@@ -95,7 +98,8 @@ def import_wallets(
         f"Import {file_path}: total={len(raw)} imported={len(to_save)} "
         f"skipped={skipped} failed={failed}"
     )
-    return {
+
+    result: dict = {
         "file":               file_path,
         "format":             fmt,
         "total_in_file":      len(raw),
@@ -103,6 +107,14 @@ def import_wallets(
         "skipped_duplicates": skipped,
         "failed":             failed,
     }
+
+    if missing_key_count > 0:
+        result["hint"] = (
+            f"{missing_key_count} row(s) failed because 'private_key' is missing. "
+            "Re-export with --include-keys to import wallets with private keys."
+        )
+
+    return result
 
 
 # ── helpers ────────────────────────────────────────────────────────────────

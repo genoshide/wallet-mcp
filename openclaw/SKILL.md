@@ -94,13 +94,14 @@ python wallet.py scan_token_balances --chain evm --label eth_test --token 0xA0b8
 
 ## export_wallets
 Export a wallet group to a JSON or CSV file for backup or offline use.
-Private keys are excluded by default (`--include-keys` to include them).
+Private keys are excluded by default. Use `--include-keys` if the file will be re-imported.
 ```
 command: python {tool_path} export_wallets [--chain <solana|evm>] [--label <label>] [--tag <tag>] [--format <json|csv>] [--path <FILE>] [--include-keys]
 ```
 Example:
 ```
 python wallet.py export_wallets --label airdrop1 --format json --path /backups/airdrop1.json
+python wallet.py export_wallets --label airdrop1 --format json --include-keys --path /backups/airdrop1_full.json
 ```
 
 ---
@@ -108,12 +109,14 @@ python wallet.py export_wallets --label airdrop1 --format json --path /backups/a
 ## import_wallets
 Import wallets from a JSON or CSV file into local storage.
 Duplicate addresses are skipped automatically.
+**IMPORTANT: The source file MUST contain private keys (exported with --include-keys).**
+Importing a file without private keys will fail for every row.
 ```
 command: python {tool_path} import_wallets --path <FILE> [--format <auto|json|csv>] [--label <label>] [--tags <tag1|tag2>]
 ```
 Example:
 ```
-python wallet.py import_wallets --path /backups/airdrop1.json --label airdrop2 --tags restored
+python wallet.py import_wallets --path /backups/airdrop1_full.json --label airdrop2 --tags restored
 ```
 
 ---
