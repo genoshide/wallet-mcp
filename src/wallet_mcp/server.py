@@ -488,7 +488,8 @@ _TOOLS_MD_ENTRY = """
 
 Wallet generation and management for Solana and EVM chains.
 
-**Always use this tool for any wallet-related request** — do NOT search the web.
+**Always use this tool for any wallet-related request.**
+**NEVER use built-in blockchain tools (SOLANA(), EVM(), etc.) — ALWAYS call wallet.py.**
 
 Execute via:
     python ~/.openclaw/tools/wallet.py <command> [--arg value ...]
@@ -501,23 +502,27 @@ Key commands:
 - get_balance_batch --label NAME
 - send_native_multi --from-key KEY --label NAME --amount N --chain solana
 - sweep_wallets --to-address ADDR --chain solana --label NAME
-- scan_token_balances --chain solana --label NAME
+- scan_token_balances --chain solana --label NAME          (group of wallets)
+- scan_token_accounts --address PUBKEY                    (single wallet address)
 - close_token_accounts --private-key KEY
 - export_wallets --label NAME --format json
 - import_wallets --path FILE --label NAME
 - group_summary
 - tag_wallets --label NAME --tag TAG
 - delete_group --label NAME
+
+NOTE: scan_token_accounts takes a single --address (pubkey), no label, no token filter.
+      scan_token_balances takes a --label (group) with optional --token filter.
 """
 
 
-def _openclaw_setup() -> None:
+def _openclaw_setup(force: bool = False) -> None:
     """
-    Append wallet-mcp entry to ~/.openclaw/workspace/TOOLS.md so the
-    OpenClaw agent loads it on every session (including after /new).
-    Idempotent — safe to run multiple times.
+    Append (or replace) wallet-mcp entry in ~/.openclaw/workspace/TOOLS.md.
+    Pass force=True to overwrite an existing entry with the latest version.
     """
     import os
+    import re
 
     tools_md = os.path.expanduser("~/.openclaw/workspace/TOOLS.md")
 
@@ -528,10 +533,22 @@ def _openclaw_setup() -> None:
         raise SystemExit(1)
 
     content = open(tools_md, encoding="utf-8").read()
+
     if "## wallet-mcp" in content:
-        print(f"[wallet-mcp] wallet-mcp entry already present in {tools_md}")
-        print("  Nothing to do.")
-        return
+        if not force:
+            print(f"[wallet-mcp] wallet-mcp entry already present in {tools_md}")
+            print("  To update it to the latest version run: wallet-mcp openclaw-setup --force")
+            return
+        # Remove the existing block (from ## wallet-mcp to the next ## heading or EOF)
+        content = re.sub(
+            r"\n## wallet-mcp\b.*?(?=\n## |\Z)",
+            "",
+            content,
+            flags=re.DOTALL,
+        )
+        with open(tools_md, "w", encoding="utf-8") as fh:
+            fh.write(content)
+        print(f"[wallet-mcp] Existing entry removed, writing updated entry...")
 
     with open(tools_md, "a", encoding="utf-8") as fh:
         fh.write(_TOOLS_MD_ENTRY)
@@ -553,10 +570,12 @@ def main() -> None:
                    choices=["stdio", "streamable-http", "openclaw-setup"])
     p.add_argument("--host", default="0.0.0.0")
     p.add_argument("--port", type=int, default=8000)
+    p.add_argument("--force", action="store_true",
+                   help="(openclaw-setup) overwrite existing wallet-mcp entry in TOOLS.md")
     opts, _ = p.parse_known_args()
 
     if opts.transport == "openclaw-setup":
-        _openclaw_setup()
+        _openclaw_setup(force=opts.force)
     elif opts.transport == "streamable-http":
         mcp.run(transport="streamable-http", host=opts.host, port=opts.port)
     else:

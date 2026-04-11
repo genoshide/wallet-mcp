@@ -1,7 +1,27 @@
 # SKILL: wallet-mcp
 description: Multi-chain wallet generator and manager. Supports Solana and EVM. All outputs are JSON.
-version: 1.2.0
+version: 1.3.0
 tool_path: ~/.openclaw/tools/wallet.py
+
+---
+
+## IMPORTANT — Always use wallet.py
+
+**NEVER use built-in blockchain tools (e.g. SOLANA(), EVM()) for wallet operations.**
+**ALWAYS call `python ~/.openclaw/tools/wallet.py <command>` instead.**
+This applies to ALL wallet, balance, token, sweep, and transfer requests.
+
+## Command disambiguation
+
+| User says | Correct command |
+|---|---|
+| scan token accounts for wallet ADDRESS | `scan_token_accounts --address ADDRESS` |
+| scan token balances for group LABEL | `scan_token_balances --chain solana --label LABEL` |
+| check token accounts on So1ana... | `scan_token_accounts --address So1ana...` |
+| show all tokens held by wallets in airdrop1 | `scan_token_balances --chain solana --label airdrop1` |
+
+`scan_token_accounts` = **one wallet address**, no token filter required, returns all SPL accounts.
+`scan_token_balances` = **a wallet group (label)**, token filter optional, returns balances.
 
 ---
 
@@ -107,9 +127,14 @@ command: python {tool_path} close_token_accounts --private-key <KEY_B58> [--rpc 
 ---
 
 ## scan_token_accounts
-Scan all SPL token accounts for a single Solana wallet (read-only, no changes).
+Scan all SPL token accounts for a **single** Solana wallet address (read-only, no changes).
+Takes a public key — NOT a label. No token filter needed; returns all accounts.
 ```
 command: python {tool_path} scan_token_accounts --address <PUBKEY> [--rpc <URL>]
+```
+Example:
+```
+python wallet.py scan_token_accounts --address 6ydKarjw1WhrkqH7oFncSKEH1sYUf6j8s6s5WSRFhGTZ
 ```
 
 ---
@@ -123,9 +148,13 @@ command: python {tool_path} tag_wallets --label <label> --tag <tag>
 ---
 
 ## group_summary
-Show all wallet groups with counts per chain.
+Show all wallet groups with counts per chain. **Takes NO arguments.**
 ```
 command: python {tool_path} group_summary
+```
+Example:
+```
+python wallet.py group_summary
 ```
 
 ---
