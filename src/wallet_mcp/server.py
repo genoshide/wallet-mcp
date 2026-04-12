@@ -492,7 +492,7 @@ Wallet generation and management for Solana and EVM chains.
 **NEVER use built-in blockchain tools (SOLANA(), EVM(), etc.) — ALWAYS call wallet.py.**
 
 Execute via:
-    python ~/.openclaw/tools/wallet.py <command> [--arg value ...]
+    python3 ~/.openclaw/tools/wallet.py <command> [--arg value ...]
 
 Skill reference: ~/.openclaw/workspace/skills/wallet-mcp/SKILL.md
 
