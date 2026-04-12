@@ -109,6 +109,40 @@ def cmd_send_native_multi(args):
     ))
 
 
+def cmd_add_wallet(args):
+    """Import a single wallet by private key — address is derived automatically."""
+    import base58
+    from wallet_mcp.core.storage import load_wallets, save_wallets_batch
+    from wallet_mcp.core.utils import now_iso
+
+    chain = args.chain.lower()
+    if chain == "solana":
+        from solders.keypair import Keypair
+        kp      = Keypair.from_bytes(base58.b58decode(args.private_key))
+        address = str(kp.pubkey())
+    elif chain == "evm":
+        from eth_account import Account
+        address = Account.from_key(args.private_key).address
+    else:
+        _err(f"Unsupported chain: {chain}")
+
+    existing = {w["address"] for w in load_wallets()}
+    if address in existing:
+        _out({"status": "skipped", "address": address,
+              "reason": "address already in storage"})
+        return
+
+    save_wallets_batch([{
+        "address":     address,
+        "private_key": args.private_key,
+        "chain":       chain,
+        "label":       args.label,
+        "tags":        args.tags or "",
+        "created_at":  now_iso(),
+    }])
+    _out({"status": "success", "address": address, "chain": chain, "label": args.label})
+
+
 def cmd_list_wallets(args):
     from wallet_mcp.core.manager import list_wallets
     wallets = list_wallets(chain=args.chain or None, label=args.label or None,
@@ -327,6 +361,14 @@ def build_parser():
     iw.add_argument("--label",  default=None)
     iw.add_argument("--tags",   default="")
 
+    # add_wallet
+    aw = sub.add_parser("add_wallet",
+                        help="Import a single wallet by private key (address auto-derived)")
+    aw.add_argument("--private-key", required=True, dest="private_key")
+    aw.add_argument("--chain",       required=True, choices=["solana", "evm"])
+    aw.add_argument("--label",       required=True)
+    aw.add_argument("--tags",        default="")
+
     return p
 
 
@@ -344,6 +386,7 @@ DISPATCH = {
     "scan_token_balances":  cmd_scan_token_balances,
     "export_wallets":       cmd_export_wallets,
     "import_wallets":       cmd_import_wallets,
+    "add_wallet":           cmd_add_wallet,
 }
 
 

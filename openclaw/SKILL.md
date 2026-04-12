@@ -119,6 +119,19 @@ python3 ~/.openclaw/tools/wallet.py export_wallets --label airdrop1 --format jso
 
 ---
 
+## add_wallet
+Import a single wallet by private key. The public address is derived automatically.
+Use this to register the "main" sender/destination wallet without needing to know its address.
+```
+command: python3 {tool_path} add_wallet --private-key <KEY> --chain <solana|evm> --label <label> [--tags <tag1|tag2>]
+```
+Example:
+```
+python3 ~/.openclaw/tools/wallet.py add_wallet --private-key 4uBCZyvJ...ZgJX --chain solana --label main
+```
+
+---
+
 ## import_wallets
 Import wallets from a JSON or CSV file into local storage.
 Duplicate addresses are skipped automatically.
