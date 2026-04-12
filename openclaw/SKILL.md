@@ -39,13 +39,16 @@ python3 ~/.openclaw/tools/wallet.py generate_wallets --chain solana --count 50 -
 ---
 
 ## send_native_multi
-Send SOL or ETH from one source wallet to all wallets in a group.
+Send SOL or ETH from ONE source wallet to ALL wallets in a group (one-to-many).
+`--from-key` is the sender's PRIVATE KEY (base58 for Solana, ~88 chars).
+`--label` is the destination GROUP name — NOT a single address.
+There is NO send_native_single command. Use this for group sends only.
 ```
-command: python3 {tool_path} send_native_multi --from-key <KEY> --label <label> --amount <AMOUNT> --chain <solana|evm> [--rpc <URL>] [--tag <tag>] [--randomize] [--delay-min 1] [--delay-max 30] [--retries 3]
+command: python3 {tool_path} send_native_multi --from-key <PRIVATE_KEY> --label <label> --amount <AMOUNT> --chain <solana|evm> [--rpc <URL>] [--tag <tag>] [--randomize] [--delay-min 1] [--delay-max 30] [--retries 3]
 ```
 Example:
 ```
-python3 ~/.openclaw/tools/wallet.py send_native_multi --from-key 5Kd3... --label airdrop1 --amount 0.01 --chain solana --randomize --delay-min 2 --delay-max 15
+python3 ~/.openclaw/tools/wallet.py send_native_multi --from-key 4uBCZyvJ...ZgJX --label airdrop1 --amount 0.001 --chain solana
 ```
 
 ---
