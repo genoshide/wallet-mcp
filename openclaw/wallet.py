@@ -75,15 +75,29 @@ def cmd_generate_wallets(args):
           "wallets": [{"address": w["address"]} for w in wallets]})
 
 
+def _resolve_sender_key(args):
+    """Return private key: from --from-key directly, or looked up via --from-label."""
+    if getattr(args, "from_key", None):
+        return args.from_key
+    if getattr(args, "from_label", None):
+        from wallet_mcp.core.storage import filter_wallets
+        wallets = filter_wallets(chain=args.chain, label=args.from_label)
+        if not wallets:
+            _err(f"No wallet found for from_label={args.from_label} chain={args.chain}")
+        return wallets[0]["private_key"]
+    _err("Provide --from-key <PRIVATE_KEY> or --from-label <LABEL>")
+
+
 def cmd_send_native_multi(args):
     from wallet_mcp.core.storage import filter_wallets
     from wallet_mcp.core.distributor import send_native_multi
+    sender_key = _resolve_sender_key(args)
     recipients = filter_wallets(chain=args.chain, label=args.label,
                                 tag=args.tag or None)
     if not recipients:
         _err(f"No wallets found for chain={args.chain} label={args.label}")
     _out(send_native_multi(
-        from_private_key=args.from_key,
+        from_private_key=sender_key,
         recipients=recipients,
         amount=args.amount,
         chain=args.chain,
@@ -144,13 +158,24 @@ def cmd_delete_group(args):
 def cmd_sweep_wallets(args):
     from wallet_mcp.core.storage import filter_wallets
     from wallet_mcp.core.distributor import sweep_native_multi
+
+    # Resolve destination: --to-address or --to-label
+    to_address = args.to_address
+    if not to_address and args.to_label:
+        dest_wallets = filter_wallets(chain=args.chain, label=args.to_label)
+        if not dest_wallets:
+            _err(f"No wallet found for to_label={args.to_label} chain={args.chain}")
+        to_address = dest_wallets[0]["address"]
+    if not to_address:
+        _err("Provide --to-address <ADDRESS> or --to-label <LABEL>")
+
     wallets = filter_wallets(chain=args.chain, label=args.label or None,
                              tag=args.tag or None)
     if not wallets:
         _err(f"No wallets found for chain={args.chain} label={args.label}")
     _out(sweep_native_multi(
         wallets=wallets,
-        to_address=args.to_address,
+        to_address=to_address,
         chain=args.chain,
         rpc_url=args.rpc or None,
         leave_lamports=args.leave_lamports,
@@ -209,7 +234,11 @@ def build_parser():
 
     # send_native_multi
     s = sub.add_parser("send_native_multi")
-    s.add_argument("--from-key",  required=True, dest="from_key")
+    key_group = s.add_mutually_exclusive_group(required=True)
+    key_group.add_argument("--from-key",   dest="from_key",   default=None,
+                           help="sender private key (base58/hex)")
+    key_group.add_argument("--from-label", dest="from_label", default=None,
+                           help="label of a stored sender wallet (no key in chat)")
     s.add_argument("--label",     required=True)
     s.add_argument("--amount",    required=True, type=float)
     s.add_argument("--chain",     required=True, choices=["solana", "evm"])
@@ -259,7 +288,11 @@ def build_parser():
 
     # sweep_wallets
     sw = sub.add_parser("sweep_wallets")
-    sw.add_argument("--to-address",     required=True, dest="to_address")
+    to_group = sw.add_mutually_exclusive_group(required=True)
+    to_group.add_argument("--to-address", dest="to_address", default=None,
+                          help="destination public address")
+    to_group.add_argument("--to-label",   dest="to_label",   default=None,
+                          help="label of a stored destination wallet")
     sw.add_argument("--chain",          required=True, choices=["solana", "evm"])
     sw.add_argument("--label",          default=None)
     sw.add_argument("--tag",            default=None)

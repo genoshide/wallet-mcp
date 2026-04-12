@@ -40,28 +40,35 @@ python3 ~/.openclaw/tools/wallet.py generate_wallets --chain solana --count 50 -
 
 ## send_native_multi
 Send SOL or ETH from ONE source wallet to ALL wallets in a group (one-to-many).
-`--from-key` is the sender's PRIVATE KEY (base58 for Solana, ~88 chars).
-`--label` is the destination GROUP name — NOT a single address.
+`--label` is the DESTINATION GROUP — NOT a single address.
 There is NO send_native_single command. Use this for group sends only.
+
+Sender can be specified two ways (use --from-label when possible — avoids raw key in chat):
+- `--from-label <LABEL>` — look up sender by label from storage (PREFERRED)
+- `--from-key <PRIVATE_KEY>` — pass raw private key directly
 ```
-command: python3 {tool_path} send_native_multi --from-key <PRIVATE_KEY> --label <label> --amount <AMOUNT> --chain <solana|evm> [--rpc <URL>] [--tag <tag>] [--randomize] [--delay-min 1] [--delay-max 30] [--retries 3]
+command: python3 {tool_path} send_native_multi (--from-label <LABEL> | --from-key <KEY>) --label <label> --amount <AMOUNT> --chain <solana|evm> [--rpc <URL>] [--tag <tag>] [--randomize] [--delay-min 1] [--delay-max 30] [--retries 3]
 ```
 Example:
 ```
-python3 ~/.openclaw/tools/wallet.py send_native_multi --from-key 4uBCZyvJ...ZgJX --label airdrop1 --amount 0.001 --chain solana
+python3 ~/.openclaw/tools/wallet.py send_native_multi --from-label main --label airdrop1 --amount 0.001 --chain solana
 ```
 
 ---
 
 ## sweep_wallets
-Collect all SOL or ETH from every wallet in a group back to one destination address.
+Collect all SOL or ETH from every wallet in a group back to one destination.
 Each wallet sends its full balance minus a small fee reserve.
+
+Destination can be specified two ways (use --to-label when possible):
+- `--to-label <LABEL>` — look up destination address by label from storage (PREFERRED)
+- `--to-address <ADDRESS>` — pass raw public address directly
 ```
-command: python3 {tool_path} sweep_wallets --to-address <ADDRESS> --chain <solana|evm> [--label <label>] [--tag <tag>] [--rpc <URL>] [--leave-lamports 5000] [--delay-min 1] [--delay-max 10] [--retries 3]
+command: python3 {tool_path} sweep_wallets (--to-label <LABEL> | --to-address <ADDRESS>) --chain <solana|evm> [--label <label>] [--tag <tag>] [--rpc <URL>] [--leave-lamports 5000] [--delay-min 1] [--delay-max 10] [--retries 3]
 ```
 Example:
 ```
-python3 ~/.openclaw/tools/wallet.py sweep_wallets --to-address So1anaMain... --chain solana --label airdrop1
+python3 ~/.openclaw/tools/wallet.py sweep_wallets --to-label main --chain solana --label airdrop1
 ```
 
 ---
