@@ -12,6 +12,11 @@ invoke: python3 ~/.openclaw/tools/wallet.py
 **ALWAYS call `python3 ~/.openclaw/tools/wallet.py <command>` instead.**
 This applies to ALL wallet, balance, token, sweep, and transfer requests.
 
+**wallet.py is SYNCHRONOUS** — every command runs to completion and returns JSON immediately.
+There is NO background task, NO session ID, NO process polling, NO `process` command.
+Do NOT invent commands like `process --action poll` or `process --action kill` — they do not exist.
+If a command takes time (e.g. sending to 100 wallets), it simply runs and returns when done.
+
 ## Command disambiguation
 
 | User says | Correct command |
