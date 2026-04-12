@@ -96,13 +96,15 @@ python3 ~/.openclaw/tools/wallet.py scan_token_balances --chain evm --label eth_
 ## export_wallets
 Export a wallet group to a JSON or CSV file for backup or offline use.
 Private keys are excluded by default. Use `--include-keys` if the file will be re-imported.
+Omit `--path` — the file is auto-saved to `~/.wallet-mcp/exports/` with a timestamp name.
+Only specify `--path` if the user explicitly asks for a custom file location.
 ```
-command: python3 {tool_path} export_wallets [--chain <solana|evm>] [--label <label>] [--tag <tag>] [--format <json|csv>] [--path <FILE>] [--include-keys]
+command: python3 {tool_path} export_wallets [--chain <solana|evm>] [--label <label>] [--tag <tag>] [--format <json|csv>] [--include-keys] [--path <FILE>]
 ```
-Example:
+Example (standard — no --path needed):
 ```
-python3 ~/.openclaw/tools/wallet.py export_wallets --label airdrop1 --format json --path /backups/airdrop1.json
-python3 ~/.openclaw/tools/wallet.py export_wallets --label airdrop1 --format json --include-keys --path /backups/airdrop1_full.json
+python3 ~/.openclaw/tools/wallet.py export_wallets --label airdrop1 --format json
+python3 ~/.openclaw/tools/wallet.py export_wallets --label airdrop1 --format json --include-keys
 ```
 
 ---
