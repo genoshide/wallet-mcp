@@ -308,13 +308,16 @@ Once running, send these natural language messages to your bot:
 | What you say | What agent calls |
 |---|---|
 | _"generate 50 solana wallets for airdrop1"_ | `generate_wallets --chain solana --count 50 --label airdrop1` |
-| _"send 0.01 SOL to all airdrop1 wallets"_ | `send_native_multi --from-key ... --label airdrop1 --amount 0.01 --chain solana` |
-| _"sweep all airdrop1 wallets to my main wallet"_ | `sweep_wallets --to-address ... --chain solana --label airdrop1` |
+| _"send 0.01 SOL to all airdrop1 wallets from main wallet"_ | `send_native_multi --from-label main --label airdrop1 --amount 0.01 --chain solana` |
+| _"sweep all airdrop1 wallets to main wallet"_ | `sweep_wallets --to-label main --chain solana --label airdrop1` |
 | _"list wallets in airdrop1"_ | `list_wallets --label airdrop1` |
 | _"check balances in airdrop1"_ | `get_balance_batch --label airdrop1` |
 | _"scan token balances for airdrop1"_ | `scan_token_balances --chain solana --label airdrop1` |
+| _"scan token accounts for wallet So1ana..."_ | `scan_token_accounts --address So1ana...` |
 | _"export airdrop1 to JSON"_ | `export_wallets --label airdrop1 --format json` |
+| _"export airdrop1 with private keys"_ | `export_wallets --label airdrop1 --format json --include-keys` |
 | _"import wallets from backup.json into airdrop2"_ | `import_wallets --path backup.json --label airdrop2` |
+| _"add my main wallet with private key ..."_ | `add_wallet --private-key ... --chain solana --label main` |
 | _"close empty token accounts on wallet So1ana..."_ | `close_token_accounts --private-key ...` |
 | _"show all wallet groups"_ | `group_summary` |
 | _"tag airdrop1 wallets as funded"_ | `tag_wallets --label airdrop1 --tag funded` |
@@ -333,6 +336,13 @@ Once running, send these natural language messages to your bot:
 | `Cannot connect to RPC` | Rate-limited or wrong URL | Set `SOLANA_RPC_URL` / `EVM_RPC_URL` in `.env` |
 | `which agent?` loop | defaultAgent not set | `openclaw config set acp.defaultAgent main` |
 | Agent ignores wallet commands | SKILL.md not loaded | Verify path: `ls ~/.openclaw/workspace/skills/wallet-mcp/SKILL.md` |
+| Agent forgets wallet-mcp after `/new` | Not in TOOLS.md | Run `wallet-mcp openclaw-setup` once on server |
+| TOOLS.md entry is outdated | Old template | Run `wallet-mcp openclaw-setup --force` to overwrite |
+| Agent uses `python` instead of `python3` | Old SKILL.md | Re-download SKILL.md (see Update section) |
+| Agent invents `process --action poll` | Old SKILL.md | Re-download SKILL.md (see Update section) |
+| Agent uses `SOLANA()` built-in instead of wallet.py | Old SKILL.md | Re-download SKILL.md (see Update section) |
+| `InsufficientFundsForRent` on send | Amount below Solana minimum | Send at least 0.001 SOL per wallet; new accounts need minimum balance |
+| Permission denied executing wallet.py | OpenClaw elevated not set | Add `"elevated": {"enabled": true, "allowFrom": {"telegram": ["*"]}}` to `openclaw.json` |
 | Gateway not starting | Port conflict | `openclaw config set gateway.port 8765` |
 
 ---
@@ -349,6 +359,9 @@ curl -fsSL https://raw.githubusercontent.com/genoshide/wallet-mcp/main/openclaw/
 
 curl -fsSL https://raw.githubusercontent.com/genoshide/wallet-mcp/main/openclaw/wallet.py \
   -o ~/.openclaw/tools/wallet.py && chmod +x ~/.openclaw/tools/wallet.py
+
+# Update TOOLS.md agent memory entry to latest version
+wallet-mcp openclaw-setup --force
 
 # Restart gateway
 systemctl --user restart openclaw-gateway.service

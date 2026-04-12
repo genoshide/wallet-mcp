@@ -5,6 +5,42 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.5.0] — 2026-04-12
+
+### Added
+- **`add_wallet`** — import a single wallet by private key; public address is derived
+  automatically from the key so users never need to look up or provide the address.
+  Available in both `openclaw/wallet.py` and documented in `SKILL.md`.
+- **`--from-label`** on `send_native_multi` — resolves sender private key from stored
+  wallet label instead of passing the raw key through chat. Prevents model refusals
+  and avoids exposing private keys in messaging platforms.
+- **`--to-label`** on `sweep_wallets` — resolves destination address from stored wallet
+  label, consistent with `--from-label` approach on send.
+- **`wallet-mcp openclaw-setup --force`** — overwrites an existing TOOLS.md entry with
+  the latest template, enabling updates without manual file editing.
+
+### Fixed
+- **`python` → `python3`** in all `SKILL.md` examples and `TOOLS.md` entry — VPS
+  environments typically lack a bare `python` binary, causing agent to fail execution.
+- **`export_wallets` path guidance** — removed `--path` from SKILL.md examples;
+  agent was inventing random file paths (`/root/`, `/root/.openclaw/workspace/`).
+  Standard usage now omits `--path` and auto-saves to `~/.wallet-mcp/exports/`.
+- **`import_wallets` hint** — returns `hint` field when all failures are due to missing
+  `private_key`, explaining that the source file must be re-exported with `--include-keys`.
+- **`send_native_multi` clarification** — documented as group send only (one-to-many);
+  agent was inventing a non-existent `send_native_single` command.
+- **`scan_token_accounts` vs `scan_token_balances` disambiguation** — added comparison
+  table to SKILL.md; agent was calling built-in `SOLANA()` tool instead of `wallet.py`
+  and confusing single-address scan with group scan.
+- **`group_summary` no-args note** — agent was appending `--label` or other flags to
+  a command that takes no arguments.
+- **Synchronous execution note** — agent was hallucinating background tasks
+  (`process --action poll`, session IDs, PIDs) because SKILL.md did not state that
+  `wallet.py` is fully synchronous and returns JSON immediately.
+- **`openclaw-setup --force`** in `TOOLS.md` template and `OPENCLAW.md` update section.
+
+---
+
 ## [1.4.0] — 2026-04-10
 
 ### Added
