@@ -6,7 +6,9 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![MCP Ready](https://img.shields.io/badge/MCP-Ready-brightgreen)](https://modelcontextprotocol.io/)
 [![OpenClaw Ready](https://img.shields.io/badge/OpenClaw-Ready-blueviolet)](https://openclaw.ai)
-[![Version](https://img.shields.io/badge/version-v1.0.0-blue)](https://github.com/genoshide/wallet-mcp/releases)
+[![Version](https://img.shields.io/badge/version-v1.5.0-blue)](https://github.com/genoshide/wallet-mcp/releases)
+[![Listed on MCPMarket](https://img.shields.io/badge/MCPMarket-Listed-orange)](https://mcpmarket.com/server/wallet-manager)
+[![Listed on MCP Servers](https://img.shields.io/badge/MCP--Servers-Listed-informational)](https://www.mcp-servers.info/servers/genoshide-wallet-mcp)
 
 A production-ready MCP (Model Context Protocol) server that gives Claude, OpenClaw, Hermes, and any MCP-compatible AI agent full control over EVM and Solana wallets — generate, fund, scan, manage, all via natural language.
 
@@ -34,6 +36,7 @@ A production-ready MCP (Model Context Protocol) server that gives Claude, OpenCl
 | `scan_token_balances` | Scan SPL / ERC-20 token balances across a wallet group |
 | `close_token_accounts` | Close empty SPL token accounts, reclaim rent SOL |
 | `scan_token_accounts` | Scan SPL token accounts for one wallet (read-only) |
+| `add_wallet` | Import a single wallet by private key (address auto-derived) |
 | `tag_wallets` | Add a tag to all wallets in a label group |
 | `group_summary` | Show wallet groups and counts per chain |
 | `delete_group` | Permanently delete all wallets in a group |
