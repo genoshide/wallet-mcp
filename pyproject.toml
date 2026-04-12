@@ -14,7 +14,7 @@ classifiers = [
 ]
 dependencies = [
   "mcp[cli]>=1.27.0",
-  "web3>=6.0.0",
+  "web3>=7.15.0",
   "eth-account>=0.13.7",
   "solana>=0.34.0",
   "solders>=0.27.1",
