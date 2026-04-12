@@ -17,7 +17,7 @@ dependencies = [
   "web3>=6.0.0",
   "eth-account>=0.10.0",
   "solana>=0.34.0",
-  "solders>=0.21.0",
+  "solders>=0.27.1",
   "base58>=2.1.1",
   "python-dotenv>=1.0.0",
 ]
