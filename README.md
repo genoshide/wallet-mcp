@@ -7,6 +7,9 @@
 [![MCP Ready](https://img.shields.io/badge/MCP-Ready-brightgreen)](https://modelcontextprotocol.io/)
 [![OpenClaw Ready](https://img.shields.io/badge/OpenClaw-Ready-blueviolet)](https://openclaw.ai)
 [![Version](https://img.shields.io/badge/version-v1.5.0-blue)](https://github.com/genoshide/wallet-mcp/releases)
+[![GitHub Stars](https://img.shields.io/github/stars/genoshide/wallet-mcp?style=flat)](https://github.com/genoshide/wallet-mcp/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/genoshide/wallet-mcp?style=flat)](https://github.com/genoshide/wallet-mcp/network/members)
+[![GitHub Downloads](https://img.shields.io/github/downloads/genoshide/wallet-mcp/total?label=downloads)](https://github.com/genoshide/wallet-mcp/releases)
 [![Listed on MCPMarket](https://img.shields.io/badge/MCPMarket-Listed-orange)](https://mcpmarket.com/server/wallet-manager)
 [![Listed on MCP Servers](https://img.shields.io/badge/MCP--Servers-Listed-informational)](https://www.mcp-servers.info/servers/genoshide-wallet-mcp)
 
