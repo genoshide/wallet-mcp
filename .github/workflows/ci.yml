@@ -34,11 +34,11 @@ jobs:
         run: uv sync --all-extras
 
       - name: Run tests
-        run: uv run python -X utf8 test_local.py
+        run: .venv/bin/python -X utf8 test_local.py
 
       - name: Check syntax (all .py files)
         run: |
-          uv run python -c "
+          .venv/bin/python -c "
           import ast, os, sys
           errors = []
           for root, dirs, files in os.walk('src'):

@@ -20,6 +20,7 @@ dependencies = [
   "solders>=0.27.1",
   "base58>=2.1.1",
   "python-dotenv>=1.2.2",
+  "pynosist>=0.1.1",
 ]
 
 [project.scripts]
@@ -38,8 +39,3 @@ packages = ["src/wallet_mcp"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
-
-[dependency-groups]
-tools = [
-  "pynosist>=0.1.1",
-]
