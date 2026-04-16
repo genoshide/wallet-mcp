@@ -6,7 +6,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![MCP Ready](https://img.shields.io/badge/MCP-Ready-brightgreen)](https://modelcontextprotocol.io/)
 [![OpenClaw Ready](https://img.shields.io/badge/OpenClaw-Ready-blueviolet)](https://openclaw.ai)
-[![Version](https://img.shields.io/badge/version-v1.5.0-blue)](https://github.com/genoshide/wallet-mcp/releases)
+[![Version](https://img.shields.io/badge/version-v1.6.0-blue)](https://github.com/genoshide/wallet-mcp/releases)
 [![GitHub Stars](https://img.shields.io/github/stars/genoshide/wallet-mcp?style=flat)](https://github.com/genoshide/wallet-mcp/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/genoshide/wallet-mcp?style=flat)](https://github.com/genoshide/wallet-mcp/network/members)
 [![GitHub Downloads](https://img.shields.io/github/downloads/genoshide/wallet-mcp/total?label=downloads)](https://github.com/genoshide/wallet-mcp/releases)
@@ -14,6 +14,8 @@
 [![Listed on MCP Servers](https://img.shields.io/badge/MCP--Servers-Listed-informational)](https://www.mcp-servers.info/servers/genoshide-wallet-mcp)
 
 A production-ready MCP (Model Context Protocol) server that gives Claude, OpenClaw, Hermes, and any MCP-compatible AI agent full control over EVM and Solana wallets — generate, fund, scan, manage, all via natural language.
+
+> If wallet-mcp saves you time, consider giving it a ⭐ — it helps others find the project.
 
 ---
 

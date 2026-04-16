@@ -5,6 +5,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.6.0] — 2026-04-16
+
+### Added
+- **`rename_label`** — rename a wallet group label in-place without delete + re-import.
+  Available as MCP tool (#13) and `openclaw/wallet.py` CLI command.
+  Example: `wallet.py rename_label --from airdrop1 --to campaign1`
+- **Pre-flight balance check on `send_native_multi`** — before the send loop starts,
+  the sender's balance is checked against the total required (count × amount + estimated fees).
+  Returns `preflight_insufficient_balance` error immediately if funds are short, with exact
+  shortfall amount. If the RPC check itself fails, the operation proceeds with a log warning.
+- **Rent minimum warning on `send_native_multi` (Solana)** — if `amount < 0.001 SOL`,
+  a `warnings` field is added to the response before execution begins, alerting that
+  transfers to new/empty accounts will fail with `InsufficientFundsForRent`.
+  When `InsufficientFundsForRent` is caught mid-loop, the error message now includes
+  a clear human-readable hint instead of the raw RPC error string.
+- **Private key masking in log file** — `_KeyMaskingFilter` added to the file handler
+  in `utils.py`. Solana keys (base58, 85–90 chars) and EVM keys (hex, 64 chars) are
+  redacted to `FIRST5***LAST4` format in `wallet-mcp.log`. JSON responses to agents are unaffected.
+- **Star request in README** — added one-line nudge below the project description.
+
+---
+
 ## [1.5.0] — 2026-04-12
 
 ### Added

@@ -135,3 +135,9 @@ def delete_group(label: str) -> dict:
     from .storage import delete_wallets_by_label
     removed = delete_wallets_by_label(label)
     return {"label": label, "deleted": removed}
+
+
+def rename_label(from_label: str, to_label: str) -> dict:
+    from .storage import rename_label as _rename
+    renamed = _rename(from_label, to_label)
+    return {"from": from_label, "to": to_label, "renamed": renamed}

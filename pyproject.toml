@@ -1,6 +1,6 @@
 [project]
 name = "wallet-mcp"
-version = "1.5.0"
+version = "1.6.0"
 description = "Multi Wallet Generator + Manager — MCP Server for AI Agents"
 readme = "README.md"
 license = { text = "MIT" }
@@ -20,6 +20,7 @@ dependencies = [
   "solders>=0.27.1",
   "base58>=2.1.1",
   "python-dotenv>=1.2.2",
+  "pynosist>=0.1.1",
 ]
 
 [project.scripts]

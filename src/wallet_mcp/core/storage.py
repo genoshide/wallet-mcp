@@ -85,6 +85,19 @@ def delete_wallets_by_label(label: str) -> int:
     return removed
 
 
+def rename_label(from_label: str, to_label: str) -> int:
+    """Rename all wallets with from_label to to_label. Returns count renamed."""
+    rows = load_wallets()
+    renamed = 0
+    for r in rows:
+        if r["label"].lower() == from_label.lower():
+            r["label"] = to_label
+            renamed += 1
+    if renamed:
+        _rewrite(rows)
+    return renamed
+
+
 def _rewrite(rows: list[dict]) -> None:
     _ensure_file()
     with open(WALLETS_CSV, "w", newline="") as f:

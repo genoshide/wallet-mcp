@@ -116,6 +116,8 @@ def send_native_multi(
     Returns:
         {status, chain, total, sent, failed, results}
     """
+    _SOLANA_RENT_MIN = 0.001  # SOL minimum for new/empty accounts (rent-exempt ~0.00089 SOL)
+
     chain = chain.lower()
     if chain == "solana":
         from .solana import send_sol, DEFAULT_RPC
@@ -126,10 +128,60 @@ def send_native_multi(
     else:
         raise ValueError(f"Unsupported chain: {chain}")
 
-    rpc     = rpc_url or default_rpc
-    results = []
-    sent    = 0
-    failed  = 0
+    rpc      = rpc_url or default_rpc
+    results  = []
+    sent     = 0
+    failed   = 0
+    warnings = []
+
+    # ── Pre-flight balance check ───────────────────────────────────────────
+    try:
+        _unit = "SOL" if chain == "solana" else "ETH"
+        _max_per_wallet = amount * 1.1 if randomize else amount  # worst-case for randomize ±10%
+        _needed = len(recipients) * _max_per_wallet
+
+        if chain == "solana":
+            import base58 as _b58
+            from solders.keypair import Keypair as _KP
+            from .solana import get_sol_balance
+            _sender_addr = str(_KP.from_bytes(_b58.b58decode(from_private_key)).pubkey())
+            _fee_est = len(recipients) * 0.000005  # ~5000 lamports per tx
+            _needed  += _fee_est
+        else:
+            from eth_account import Account as _Acct
+            from .evm import get_evm_balance
+            _key = from_private_key if from_private_key.startswith("0x") else f"0x{from_private_key}"
+            _sender_addr = _Acct.from_key(_key).address
+            _fee_est = 0.0  # gas cost is variable, not included
+
+        _balance = (get_sol_balance if chain == "solana" else get_evm_balance)(_sender_addr, rpc)
+
+        if _balance < _needed:
+            return {
+                "status":  "error",
+                "error":   "preflight_insufficient_balance",
+                "chain":   chain,
+                "sender":  _sender_addr,
+                "balance": round(_balance, 9),
+                "needed":  round(_needed, 9),
+                "message": (
+                    f"Insufficient balance: {_balance:.6f} {_unit} available, "
+                    f"~{_needed:.6f} {_unit} needed "
+                    f"({len(recipients)} wallets × {amount} {_unit}"
+                    + (f" + ~{_fee_est:.6f} {_unit} fees" if _fee_est else ", excluding gas") + "). "
+                    f"Top up at least {_needed - _balance:.6f} {_unit} and retry."
+                ),
+            }
+        _log.info(f"Pre-flight OK: {_balance:.6f} {_unit} available, ~{_needed:.6f} needed")
+    except Exception as _e:
+        _log.warning(f"Pre-flight check skipped: {_e}")
+
+    if chain == "solana" and amount < _SOLANA_RENT_MIN:
+        warnings.append(
+            f"amount {amount} SOL is below the recommended minimum of {_SOLANA_RENT_MIN} SOL. "
+            f"Transfers to new/empty accounts will fail with InsufficientFundsForRent. "
+            f"Use at least {_SOLANA_RENT_MIN} SOL per wallet."
+        )
 
     for i, wallet in enumerate(recipients):
         to_addr   = wallet["address"]
@@ -144,14 +196,20 @@ def send_native_multi(
             sent += 1
             _log.info(f"[{i+1}/{len(recipients)}] {send_amt} {chain} → {to_addr} | {tx_hash}")
         except Exception as e:
-            results.append({"address": to_addr, "amount": send_amt, "tx_hash": None, "status": "failed", "error": str(e)})
+            err_str = str(e)
+            if "InsufficientFundsForRent" in err_str:
+                hint = f"Recipient may have 0 balance — amount must be >= {_SOLANA_RENT_MIN} SOL for new accounts."
+                results.append({"address": to_addr, "amount": send_amt, "tx_hash": None, "status": "failed", "error": hint})
+                _log.error(f"[{i+1}/{len(recipients)}] Failed → {to_addr}: {hint}")
+            else:
+                results.append({"address": to_addr, "amount": send_amt, "tx_hash": None, "status": "failed", "error": err_str})
+                _log.error(f"[{i+1}/{len(recipients)}] Failed → {to_addr}: {e}")
             failed += 1
-            _log.error(f"[{i+1}/{len(recipients)}] Failed → {to_addr}: {e}")
 
         if i < len(recipients) - 1:
             random_delay(delay_min, delay_max)
 
-    return {
+    result = {
         "status":  "success" if failed == 0 else "partial",
         "chain":   chain,
         "total":   len(recipients),
@@ -159,3 +217,6 @@ def send_native_multi(
         "failed":  failed,
         "results": results,
     }
+    if warnings:
+        result["warnings"] = warnings
+    return result

@@ -251,6 +251,14 @@ def cmd_import_wallets(args):
     _out({"status": "success", **result})
 
 
+def cmd_rename_label(args):
+    from wallet_mcp.core.manager import rename_label
+    result = rename_label(from_label=args.from_label, to_label=args.to_label)
+    if result["renamed"] == 0:
+        _err(f"No wallets found with label '{args.from_label}'.")
+    _out({"status": "success", **result})
+
+
 # ── Parser ────────────────────────────────────────────────────────────────
 
 def build_parser():
@@ -369,6 +377,14 @@ def build_parser():
     aw.add_argument("--label",       required=True)
     aw.add_argument("--tags",        default="")
 
+    # rename_label
+    rl = sub.add_parser("rename_label",
+                        help="Rename a wallet group label without delete + re-import")
+    rl.add_argument("--from", required=True, dest="from_label",
+                    help="current label (e.g. airdrop1)")
+    rl.add_argument("--to",   required=True, dest="to_label",
+                    help="new label (e.g. campaign1)")
+
     return p
 
 
@@ -387,6 +403,7 @@ DISPATCH = {
     "export_wallets":       cmd_export_wallets,
     "import_wallets":       cmd_import_wallets,
     "add_wallet":           cmd_add_wallet,
+    "rename_label":         cmd_rename_label,
 }
 
 

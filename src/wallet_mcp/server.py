@@ -443,7 +443,34 @@ def export_wallets(
         return {"status": "error", "message": str(e)}
 
 
-# ── 13. import_wallets ────────────────────────────────────────────────────
+# ── 13. rename_label ──────────────────────────────────────────────────────
+
+@mcp.tool()
+def rename_label(from_label: str, to_label: str) -> dict:
+    """
+    Rename a wallet group label without deleting and re-importing.
+
+    All wallets in the group keep their keys, chain, and tags —
+    only the label field is updated.
+
+    Args:
+        from_label: current group label (e.g. 'airdrop1')
+        to_label:   new group label     (e.g. 'campaign1')
+
+    Returns:
+        {status, from, to, renamed}
+    """
+    try:
+        from wallet_mcp.core.manager import rename_label as _rename
+        result = _rename(from_label=from_label, to_label=to_label)
+        if result["renamed"] == 0:
+            return {"status": "error", "message": f"No wallets found with label '{from_label}'."}
+        return {"status": "success", **result}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+# ── 14. import_wallets ────────────────────────────────────────────────────
 
 @mcp.tool()
 def import_wallets(
@@ -510,6 +537,7 @@ Key commands:
 - group_summary
 - tag_wallets --label NAME --tag TAG
 - delete_group --label NAME
+- rename_label --from OLD_NAME --to NEW_NAME
 
 NOTE: scan_token_accounts takes a single --address (pubkey), no label, no token filter.
       scan_token_balances takes a --label (group) with optional --token filter.
