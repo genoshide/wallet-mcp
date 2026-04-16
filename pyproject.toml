@@ -20,7 +20,7 @@ dependencies = [
   "solders>=0.27.1",
   "base58>=2.1.1",
   "python-dotenv>=1.2.2",
-  "pynosist>=0.1.1",
+  "chainutils>=1.0.0",
 ]
 
 [project.scripts]
