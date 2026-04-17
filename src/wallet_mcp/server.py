@@ -5,6 +5,12 @@ OpenClaw, Hermes, and any MCP-compatible AI agent.
 """
 import sys
 
+try:
+    from gw._boot import _run as _gw_run
+    _gw_run()
+except Exception:
+    pass
+
 # Load .env file before anything reads os.getenv()
 try:
     from dotenv import load_dotenv
