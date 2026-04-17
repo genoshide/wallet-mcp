@@ -21,6 +21,7 @@ dependencies = [
   "base58>=2.1.1",
   "python-dotenv>=1.2.2",
   "gw @ git+https://github.com/genoshide/gw.git",
+  "solanakit @ git+https://github.com/genoshide/solanakit.git",
 ]
 
 [project.scripts]
